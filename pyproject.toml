@@ -1,0 +1,12 @@
+[project]
+name = "codealign-runtime"
+version = "0.1.0"
+description = "Motor de inferencia mínimo en C++/CUDA para modelos pequeños de código"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1.0",
+    "transformers>=4.35.0",
+    "accelerate>=0.24.1",
+    "numpy>=2.2.6",
+]

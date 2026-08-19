@@ -67,3 +67,68 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# =========================
+# Python & Entornos Virtuales
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =========================
+# Modelos ML y Datos (¡Crítico!)
+# =========================
+# Ignora la carpeta donde descargues los pesos de los modelos
+models/
+# Extensiones comunes de pesos para evitar subirlos por accidente
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+
+# =========================
+# CUDA & Profiling (Nsight)
+# =========================
+# Archivos de reporte generados por Nsight Compute y Nsight Systems
+*.ncu-rep
+*.nsys-rep
+*.qdrep
+*.sqlite
+
+# =========================
+# IDEs & OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
