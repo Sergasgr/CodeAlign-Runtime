@@ -1,5 +1,5 @@
 #include "gemv.h"
-#include <iostream>
+#include <iostream> //innecesario?
 #define FULL_MASK 0xffffffff
 
 const int WARP = 32; 
