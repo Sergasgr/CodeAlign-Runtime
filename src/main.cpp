@@ -20,7 +20,7 @@ void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_
                 int val = round(h_mat[j + k] / scale);
                 if(val > 7) val = 7;
                 if(val < -8) val = -8;
-                packed = packed | ((val & 0xF) << 4*k);
+                packed = packed | ((val & 0xF) << 4 * k);
             }     
             h_q_mat.push_back(packed);
         }
@@ -28,35 +28,44 @@ void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_
 }
 
 int main() { // nsight-compute??
-    const int N = 5;
+    //const int N = 5; MULTIPLICO LOS SIZE_T POR N??
     int rows = 4864, cols = 896;
-    size_t bytes_mat = rows * cols * sizeof(float);
+
+    size_t bytes_mat = rows * cols * sizeof(float); 
     size_t bytes_vec = cols * sizeof(float);
     size_t bytes_out = rows * sizeof(float);
-    
+
     std::vector<float> h_mat(rows * cols, 1.0f); 
     std::vector<float> h_vec(cols, 1.0f);
     std::vector<float> h_out_naive(rows, 1.0f);
     std::vector<float> h_out_opt(rows, 1.0f);
     std::vector<uint32_t> h_q_mat;
     std::vector<float> h_scales;
+    std::vector<float> h_out_q(rows, 1.0f);
 
     symmetric_quantization(h_mat, h_q_mat, h_scales, rows, cols);
 
-    float *d_mat, *d_vec, *d_out_naive, *d_out_opt, *d_q_mat, *d_scales;
+    size_t bytes_q_mat = h_q_mat.size() * sizeof(uint32_t);
+    size_t bytes_scales = h_scales.size() * sizeof(float);
+
+    float *d_mat, *d_vec, *d_out_naive, *d_out_opt, *d_scales, *d_out_q;
+    uint32_t *d_q_mat;
+
     cudaMalloc((void**)&d_mat, bytes_mat);
     cudaMalloc((void**)&d_vec, bytes_vec);
     cudaMalloc((void**)&d_out_naive, bytes_out);
     cudaMalloc((void**)&d_out_opt, bytes_out);
-    cudaMalloc((void**)&d_q_mat, );
-    cudaMalloc((void**)&d_scales, );
+    cudaMalloc((void**)&d_q_mat, bytes_q_mat); 
+    cudaMalloc((void**)&d_scales, bytes_scales);
+    cudaMalloc((void**)&d_out_q, bytes_out);
 
     cudaMemcpy(d_mat, h_mat.data(), bytes_mat, cudaMemcpyHostToDevice);
     cudaMemcpy(d_vec, h_vec.data(), bytes_vec, cudaMemcpyHostToDevice);
     cudaMemcpy(d_out_naive, h_out_naive.data(), bytes_out, cudaMemcpyHostToDevice);
     cudaMemcpy(d_out_opt, h_out_opt.data(), bytes_out, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_q_mat, h_q_mat.data(), , cudaMemcpyHostToDevice);
-    cudaMemcpy(d_scales, h_scales.data(), , cudaMemcpyHostToDevice);
+    cudaMemcpy(d_q_mat, h_q_mat.data(), bytes_q_mat, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_scales, h_scales.data(), bytes_scales, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_out_q, h_out_q.data(), bytes_out, cudaMemcpyHostToDevice);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -111,7 +120,7 @@ int main() { // nsight-compute??
 
     for(int i = 0; i < NUM_ITERATIONS; i++) { 
         cudaEventRecord(start);
-        run_gemv_int4_kernel(d_mat, d_vec, d_out_opt, rows, cols);
+        run_gemv_int4_kernel(d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
 
@@ -120,17 +129,17 @@ int main() { // nsight-compute??
         if (i >= 10) total_ms += milliseconds;
     }
 
-    //cudaMemcpy(h_out_opt.data(), d_out_opt, bytes_out, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_out_q.data(), d_out_q, bytes_out, cudaMemcpyDeviceToHost);
 
     avg_ms = total_ms / (NUM_ITERATIONS - 10);
-    //avg_bandwidth = ((bytes_mat + bytes_vec + bytes_out) / 1e6) / avg_ms;
-
+    avg_bandwidth = ((bytes_q_mat + bytes_scales + bytes_vec + bytes_out) / 1e6) / avg_ms;
+ 
     std::cout << "-----QUANTIZED KERNEL-----" << "\n";
     std::cout << "Average Execution Time: " << avg_ms << " ms\n";
     std::cout << "Average Bandwidth " << avg_bandwidth << " GB/s\n";
     
-    for(int i = 0; i < rows; i++) { //quantized?
-        if (std::abs(h_out_naive[i] - h_out_opt[i]) > 1e-4) {
+    for(int i = 0; i < rows; i++) { 
+        if (std::abs(h_out_naive[i] - h_out_opt[i]) > 1e-4 || std::abs(h_out_naive[i] - h_out_q[i]) > 0.05f)  {
             std::cout << "Validation Error in index " << i << "\n";
             break;
         }
@@ -142,6 +151,7 @@ int main() { // nsight-compute??
     cudaFree(d_out_opt);
     cudaFree(d_q_mat);
     cudaFree(d_scales);
+    cudaFree(d_out_q);
 
     return 0;
 }
