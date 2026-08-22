@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
+#include <limits>
+#include <cmath>
 
 const int GROUP = 128; // cuantización simétrica INT4 por grupos de 128
 
@@ -20,7 +22,7 @@ void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_
                 int val = round(h_mat[j + k] / scale);
                 if(val > 7) val = 7;
                 if(val < -8) val = -8;
-                packed = packed | ((val & 0xF) << 4 * k);
+                packed = packed | ((uint32_t)(val & 0xF) << (4 * k));
             }     
             h_q_mat.push_back(packed);
         }

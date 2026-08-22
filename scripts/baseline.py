@@ -19,7 +19,7 @@ def run_benchmark():
     tokenizer = AutoTokenizer.from_pretrained(MODEL)
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=MODEL,
-        torch_dtype=precision,
+        dtype=precision,
         device_map="cuda" 
     )
     chatml = [{"role": "user", "content": PROMPT}]
@@ -63,7 +63,7 @@ def run_benchmark():
                 token_processed_end.record()
                 torch.cuda.synchronize()
                 
-                if i >= 10:
+                if i >= warmup_steps:
                     tpot_list.append(token_processed_start.elapsed_time(token_processed_end))
                 
                 input_id = torch.argmax(outputs.logits[:, -1, :], dim=-1).unsqueeze(0)

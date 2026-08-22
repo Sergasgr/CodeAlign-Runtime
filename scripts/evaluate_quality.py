@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -14,7 +18,7 @@ def run_evaluation():
     tokenizer = AutoTokenizer.from_pretrained(MODEL)
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=MODEL,
-        torch_dtype=precision,
+        dtype=precision,
         device_map="cuda"
     )
     
@@ -48,7 +52,7 @@ def run_evaluation():
 
     accelerator = Accelerator()
     evaluator = Evaluator(accelerator, model, tokenizer, args)
-    results = evaluator.evaluate(task_name="humaneval") 
+    results = evaluator.evaluate("humaneval")
     
     print("\n===RESULTS===")
     print(f"Pass@1 (Optimized INT4): {results['humaneval']['pass@1']}")
