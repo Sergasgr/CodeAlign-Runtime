@@ -4,8 +4,8 @@
 #include <vector>
 #include <cstdint>
 
-const int GROUP = 128;
-// cuantización simétrica INT4 por grupos de 128
+const int GROUP = 128; // cuantización simétrica INT4 por grupos de 128
+
 void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_t>& h_q_mat, std::vector<float>& h_scales, int rows, int cols) { 
     for(int i = 0; i < rows * cols; i += GROUP) {
         float max_abs = std::numeric_limits<float>::lowest();
@@ -25,6 +25,37 @@ void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_
             h_q_mat.push_back(packed);
         }
     }
+}
+
+const int NUM_ITERATIONS = 100;
+
+template <typename Func>
+void benchmark_kernel(const std::string& kernel_name, Func kernel_call, size_t total_bytes, int num_iterations = NUM_ITERATIONS, int warmup = 10) {
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    float total_ms = 0;
+    for(int i = 0; i < num_iterations; i++) { 
+        cudaEventRecord(start);
+        kernel_call();
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        if (i >= warmup) total_ms += milliseconds;
+    }
+
+    float avg_ms = total_ms / (num_iterations - warmup);
+    float avg_bandwidth = (total_bytes / 1e6) / avg_ms;
+
+    std::cout << "===" << kernel_name << "===" << "\n";
+    std::cout << "Average Execution Time: " << avg_ms << " ms\n";
+    std::cout << "Average Bandwidth " << avg_bandwidth << " GB/s\n";
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 }
 
 int main() { // nsight-compute??
@@ -66,78 +97,31 @@ int main() { // nsight-compute??
     cudaMemcpy(d_q_mat, h_q_mat.data(), bytes_q_mat, cudaMemcpyHostToDevice);
     cudaMemcpy(d_scales, h_scales.data(), bytes_scales, cudaMemcpyHostToDevice);
     cudaMemcpy(d_out_q, h_out_q.data(), bytes_out, cudaMemcpyHostToDevice);
-
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    float total_ms = 0;
-    const int NUM_ITERATIONS = 100;
-
-    for(int i = 0; i < NUM_ITERATIONS; i++) { 
-        cudaEventRecord(start);
-        run_gemv_naive(d_mat, d_vec, d_out_naive, rows, cols);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-
-        float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-        if (i >= 10) total_ms += milliseconds;
-    }
+    
+    benchmark_kernel("NAIVE KERNEL", [&]() { 
+        run_gemv_naive(d_mat, d_vec, d_out_naive, rows, cols); 
+    }, bytes_mat + bytes_vec + bytes_out);
 
     cudaMemcpy(h_out_naive.data(), d_out_naive, bytes_out, cudaMemcpyDeviceToHost);
 
-    float avg_ms = total_ms / (NUM_ITERATIONS - 10);
-    float avg_bandwidth = ((bytes_mat + bytes_vec + bytes_out) / 1e6) / avg_ms;
-
-    std::cout << "-----NAIVE KERNEL-----" << "\n";
-    std::cout << "Average Execution Time: " << avg_ms << " ms\n";
-    std::cout << "Average Bandwidth " << avg_bandwidth << " GB/s\n";
+    benchmark_kernel("OPTIMIZED KERNEL", [&]() { 
+        run_gemv_optimized(d_mat, d_vec, d_out_opt, rows, cols); 
+    }, bytes_mat + bytes_vec + bytes_out);
     
-    total_ms = 0;
-
-    for(int i = 0; i < NUM_ITERATIONS; i++) { 
-        cudaEventRecord(start);
-        run_gemv_optimized(d_mat, d_vec, d_out_opt, rows, cols);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-
-        float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-        if (i >= 10) total_ms += milliseconds;
-    }
-
     cudaMemcpy(h_out_opt.data(), d_out_opt, bytes_out, cudaMemcpyDeviceToHost);
 
-    avg_ms = total_ms / (NUM_ITERATIONS - 10);
-    avg_bandwidth = ((bytes_mat + bytes_vec + bytes_out) / 1e6) / avg_ms;
-
-    std::cout << "-----OPTIMIZED KERNEL-----" << "\n"; // WARP KERNEL??
-    std::cout << "Average Execution Time: " << avg_ms << " ms\n";
-    std::cout << "Average Bandwidth " << avg_bandwidth << " GB/s\n";
-
-    total_ms = 0;
-
-    for(int i = 0; i < NUM_ITERATIONS; i++) { 
-        cudaEventRecord(start);
-        run_gemv_int4_kernel(d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-
-        float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-        if (i >= 10) total_ms += milliseconds;
-    }
+    benchmark_kernel("QUANTIZED NAIVE KERNEL", [&]() { 
+        run_gemv_int4_naive_kernel(d_q_mat, d_scales, d_vec, d_out_q, rows, cols); 
+    }, bytes_q_mat + bytes_scales + bytes_vec + bytes_out);
 
     cudaMemcpy(h_out_q.data(), d_out_q, bytes_out, cudaMemcpyDeviceToHost);
 
-    avg_ms = total_ms / (NUM_ITERATIONS - 10);
-    avg_bandwidth = ((bytes_q_mat + bytes_scales + bytes_vec + bytes_out) / 1e6) / avg_ms;
- 
-    std::cout << "-----QUANTIZED KERNEL-----" << "\n";
-    std::cout << "Average Execution Time: " << avg_ms << " ms\n";
-    std::cout << "Average Bandwidth " << avg_bandwidth << " GB/s\n";
-    
+    benchmark_kernel("QUANTIZED OPTIMIZED KERNEL", [&]() { 
+        run_gemv_int4_optimized_kernel(d_q_mat, d_scales, d_vec, d_out_q, rows, cols); 
+    }, bytes_q_mat + bytes_scales + bytes_vec + bytes_out);
+
+    cudaMemcpy(h_out_q.data(), d_out_q, bytes_out, cudaMemcpyDeviceToHost);
+
     for(int i = 0; i < rows; i++) { 
         if (std::abs(h_out_naive[i] - h_out_opt[i]) > 1e-4 || std::abs(h_out_naive[i] - h_out_q[i]) > 0.05f)  {
             std::cout << "Validation Error in index " << i << "\n";

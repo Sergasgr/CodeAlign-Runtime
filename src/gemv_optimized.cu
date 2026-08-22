@@ -1,5 +1,4 @@
 #include "gemv.h"
-#include <iostream> //innecesario?
 #define FULL_MASK 0xffffffff
 
 const int WARP = 32; 
@@ -22,6 +21,7 @@ __global__ void gemv_optimized_kernel(const float* d_mat, const float* d_vec, fl
             sum += __shfl_down_sync(FULL_MASK, sum, offset);
             offset /= 2;
         } 
+        
         if(lane_id == 0) {
             d_out_opt[row] = sum;
         }

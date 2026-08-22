@@ -1,5 +1,16 @@
 MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
-PROMPT = ""
+
+PROMPT = """def calculate_fibonacci(n):
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    result = [0, 1]
+    for i in range(2, n):
+        result.append(result[i-1] + result[i-2])
+    return result
+"""
+
 NUM_ITERATIONS = 100
 MAX_TOKENS = 50
 

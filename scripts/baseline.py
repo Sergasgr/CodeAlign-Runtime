@@ -18,7 +18,7 @@ def run_benchmark():
     
     tokenizer = AutoTokenizer.from_pretrained(MODEL)
     model = AutoModelForCausalLM.from_pretrained(
-        model=MODEL,
+        pretrained_model_name_or_path=MODEL,
         torch_dtype=precision,
         device_map="cuda" 
     )
@@ -37,6 +37,8 @@ def run_benchmark():
 
     print(f"\nExecuting benchmark ({NUM_ITERATIONS} iterations)...")
     
+    warmup_steps = min(10, max(1, NUM_ITERATIONS // 10))
+    
     torch.cuda.reset_peak_memory_stats()
     for i in range(NUM_ITERATIONS):
         with torch.no_grad(): # TTFT & TPOT
@@ -46,7 +48,7 @@ def run_benchmark():
             first_token_end.record()
             torch.cuda.synchronize()
             
-            if i >= 10: # Ignoring the first 10 results -> warmup
+            if i >= warmup_steps: # Ignoring the first results -> warmup
                 ttft_list.append(first_token_start.elapsed_time(first_token_end))
             
             # --- 2. TPOT (Decode) ---
@@ -69,16 +71,20 @@ def run_benchmark():
                 tokens_generated += 1
         
     print("\n=== Results ===")
-    print(f"TTFT (ms): p50={np.percentile(ttft_list, 50):.2f}, p90={np.percentile(ttft_list, 90):.2f}, p99={np.percentile(ttft_list, 99):.2f}")
-    
-    tpot_p50 = np.percentile(tpot_list, 50)
-    print(f"TPOT (ms/token): p50={tpot_p50:.2f}, p90={np.percentile(tpot_list, 90):.2f}, p99={np.percentile(tpot_list, 99):.2f}")
-    
-    print("\n=== Theoretical Roofline ===")
-    print(f"Theoretical minimum TPOT: {THEORETICAL_MIN_TPOT_MS:.2f} ms/token")
-    
-    efficiency = (THEORETICAL_MIN_TPOT_MS / tpot_p50) * 100
-    print(f"Peak bandwidth ceiling reached: {efficiency:.2f}%")
+    if ttft_list and tpot_list:
+        print(f"TTFT (ms): p50={np.percentile(ttft_list, 50):.2f}, p90={np.percentile(ttft_list, 90):.2f}, p99={np.percentile(ttft_list, 99):.2f}")
+        
+        tpot_p50 = np.percentile(tpot_list, 50)
+        print(f"TPOT (ms/token): p50={tpot_p50:.2f}, p90={np.percentile(tpot_list, 90):.2f}, p99={np.percentile(tpot_list, 99):.2f}")
+        
+        print("\n=== Theoretical Roofline ===")
+        print(f"Hardware setup: {MODEL_PARAMS_BILLIONS}B model ({MODEL_BYTES / (1024**3):.2f} GB) on GPU with {GPU_BANDWIDTH_GBPS} GB/s BW")
+        print(f"Theoretical minimum TPOT: {THEORETICAL_MIN_TPOT_MS:.2f} ms/token")
+        
+        efficiency = (THEORETICAL_MIN_TPOT_MS / tpot_p50) * 100
+        print(f"Peak bandwidth ceiling reached: {efficiency:.2f}%")
+    else:
+        print("Error: No valid metrics gathered. Check NUM_ITERATIONS or MAX_TOKENS.")
     
     vram_peak_bytes = torch.cuda.max_memory_allocated()
     vram_peak_mb = vram_peak_bytes / (1024 ** 2)

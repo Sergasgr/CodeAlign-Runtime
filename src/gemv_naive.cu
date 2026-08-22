@@ -1,5 +1,4 @@
 #include "gemv.h"
-#include <iostream> //innecesario?
 
 __global__ void gemv_naive_kernel(const float* d_mat, const float* d_vec, float* d_out_naive, int rows, int cols) {
     int row = blockIdx.x * blockDim.x + threadIdx.x;

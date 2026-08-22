@@ -9,4 +9,14 @@ dependencies = [
     "transformers>=4.35.0",
     "accelerate>=0.24.1",
     "numpy>=2.2.6",
+    "setuptools>=84.0.0",
+    "bigcode-eval",
+    "datasets>=5.0.1",
 ]
+
+[build-system]
+requires = ["setuptools", "torch"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+bigcode-eval = { git = "https://github.com/bigcode-project/bigcode-evaluation-harness.git" }
