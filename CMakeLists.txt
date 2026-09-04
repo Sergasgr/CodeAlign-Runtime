@@ -6,9 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_executable(level1_naive 
-    src/main.cpp 
+add_executable(gemv_benchmark
+    src/main.cpp
     src/gemv_naive.cu
+    src/gemv_optimized.cu
+    src/gemv_quantized.cu
 )
 
-target_include_directories(level1_naive PRIVATE src)
+target_include_directories(gemv_benchmark PRIVATE src)

@@ -6,7 +6,7 @@
 #include <limits>
 #include <cmath>
 
-const int GROUP = 128; // cuantización simétrica INT4 por grupos de 128
+const int GROUP = 128; // Symmetric INT4 group-wise quantization (group size 128)
 
 void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_t>& h_q_mat, std::vector<float>& h_scales, int rows, int cols) { 
     for(int i = 0; i < rows * cols; i += GROUP) {
@@ -60,9 +60,8 @@ void benchmark_kernel(const std::string& kernel_name, Func kernel_call, size_t t
     cudaEventDestroy(stop);
 }
 
-int main() { // nsight-compute??
-    //const int N = 5; MULTIPLICO LOS SIZE_T POR N??
-    int rows = 4864, cols = 896;
+int main() {
+    int rows = 4864, cols = 896; // MLP Up projection dimensions for Qwen2.5-0.5B
 
     size_t bytes_mat = rows * cols * sizeof(float); 
     size_t bytes_vec = cols * sizeof(float);
