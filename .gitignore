@@ -104,6 +104,10 @@ env/
 !.env.example
 pip-log.txt
 
+__pycache__/
+*.py[cod]
+*.egg-info/
+
 # =========================
 # Modelos ML y Datos (¡Crítico!)
 # =========================
