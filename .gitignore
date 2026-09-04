@@ -99,9 +99,10 @@ MANIFEST
 venv/
 .venv/
 env/
-.env/
+.env
+.env.*
+!.env.example
 pip-log.txt
-pip-delete-this-directory.txt
 
 # =========================
 # Modelos ML y Datos (¡Crítico!)
