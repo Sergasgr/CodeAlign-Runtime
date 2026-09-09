@@ -11,6 +11,8 @@ add_executable(gemv_benchmark
     src/gemv_naive.cu
     src/gemv_optimized.cu
     src/gemv_quantized.cu
+    src/flash_decoding_partial.cu
+    src/flash_decoding_final.cu
 )
 
 target_include_directories(gemv_benchmark PRIVATE src)

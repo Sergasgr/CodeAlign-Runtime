@@ -18,6 +18,7 @@ A progressive system of hand-written CUDA kernels to serve a code language model
   - [Level 1 — Naive CUDA Kernel](#level-1--naive-cuda-kernel)
   - [Level 2 — Optimized Kernel](#level-2--optimized-kernel-coalescing-float4-warp-shuffle)
   - [Level 3 — INT4 Quantization + Fused Kernel](#level-3--int4-quantization--fused-kernel)
+  - [Level 4 — Flash-Decoding](#level-4--flash-decoding)
 - [Results](#results)
 - [Benchmarking Methodology](#benchmarking-methodology)
 - [Quantization vs. Quality](#quantization-vs-quality)
@@ -36,7 +37,7 @@ A progressive system of hand-written CUDA kernels to serve a code language model
 | 1 — Naive kernel | ✅ Complete | One thread per row, uncoalesced accesses |
 | 2 — Optimized kernel | ✅ Complete | float4, warp shuffle, coalesced accesses |
 | 3 — INT4 fused | ✅ Complete | Per-group quantization (g=128), dequant+matmul in-kernel |
-| 4 — Flash-Decoding | 🔲 Next | Decode-phase attention (parallelization over KV-cache) |
+| 4 — Flash-Decoding | ✅ Complete | Decode-phase attention (parallelization over KV-cache) |
 | 5 — C++ Integration | 🔲 Planned | Full inference loop, pybind11, end-to-end benchmark |
 | 6 — Prompt Lookup Decoding | 🔲 Planned | Algorithmic speculative decoding for code |
 
@@ -63,12 +64,15 @@ CodeAlign-Runtime/
 │   ├── gemv_naive.cu             # Level 1: naive GEMV kernel (one thread per row)
 │   ├── gemv_optimized.cu         # Level 2: float4 + warp shuffle + coalescing
 │   ├── gemv_quantized.cu         # Level 3: INT4 GEMV (naive + optimized)
+│   ├── flash_decoding_partial.cu # Level 4: partial attention per KV-cache chunk
+│   ├── flash_decoding_final.cu   # Level 4: global reduction over chunk outputs
 │   ├── main.cpp                  # C++ benchmark harness with CUDA events
 │   ├── binding.cpp               # PyTorch ↔ CUDA binding via torch::Extension
 │   └── quantization.py           # Per-group INT4 quantization + nn.Linear replacement
 ├── scripts/
 │   ├── baseline.py               # Level 0: PyTorch benchmark (TTFT/TPOT/VRAM/roofline)
 │   ├── baseline_config.py        # Model configuration and hardware constants
+│   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch attention
 │   └── evaluate_quality.py       # HumanEval pass@1 evaluation of quantized model
 ├── CMakeLists.txt                # Native C++/CUDA benchmark build
 ├── setup.py                      # PyTorch extension build (torch.utils.cpp_extension)
@@ -195,6 +199,57 @@ The `replace_linear_layers()` function recursively traverses the model and repla
 #### Important Note on llama.cpp Comparison
 
 This project's INT4 scheme (per-group symmetric, g=128) **is not identical** to llama.cpp's Q4_K_M format, which uses a custom mixed packing scheme with super-blocks and multiple scale levels. The speed comparison in Level 5 will be valid as "my code vs. the industry standard", but it is not an apples-to-apples comparison in terms of quantization scheme — and this is stated explicitly.
+
+---
+
+### Level 4 — Flash-Decoding
+
+**Files:** [`flash_decoding_partial.cu`](src/flash_decoding_partial.cu), [`flash_decoding_final.cu`](src/flash_decoding_final.cu), [`binding.cpp`](src/binding.cpp)
+
+During the decode phase (batch=1, a single new query against a growing KV-cache), the compute pattern is not the same as the prefill that original FlashAttention targets. With a single new query there is nothing to parallelize over in the Q dimension — most GPU SMs would sit idle. The correct technique for this case is **Flash-Decoding**: parallelize over the KV-cache dimension.
+
+#### Architecture (two-kernel design)
+
+1. **Partial Kernel** (`flash_decoding_partial`): The KV-cache is split into chunks of 256 tokens. Each GPU block processes one chunk independently: it computes the dot product Q·Kᵢ for each token via warp-collaborative reduction (`__shfl_down_sync`), scales by `1/√D`, and accumulates the weighted value vector using **online softmax** (tracking running `max` and `log(sum(exp))`) — no need to materialize the full attention matrix. Each block outputs a normalized partial output vector and its local log-sum-exp.
+
+2. **Final Kernel** (`flash_decoding_final`): A single block combines all chunk outputs. Thread 0 computes the global log-sum-exp from all partial LSEs, then each thread rescales and sums the partial outputs using `exp(lse_local - lse_global)` as weights.
+
+#### Numerical Validation
+
+Validated against PyTorch reference attention with **3 seeds × 6 sequence lengths** (including non-multiples of chunk_size: 1000, 2000):
+
+| seed | S=256 | S=1000 | S=1024 | S=2000 | S=2048 | S=4096 |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 0 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 |
+| 42 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 |
+| 12345 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 | ✅ 0.000 |
+
+18/18 PASS (threshold: max absolute error < 1e-2). The online softmax implementation is mathematically exact in fp32.
+
+#### Benchmark Results (single head, fp32, batch=1)
+
+| Seq Length | PyTorch (ms) | Custom (ms) | Ratio |
+|---:|---:|---:|:---:|
+| 256 | 0.088 | 0.150 | 0.59× |
+| 4,096 | 0.086 | 0.159 | 0.54× |
+| 16,384 | 0.092 | 0.161 | 0.57× |
+| 65,536 | 0.113 | 0.294 | 0.38× |
+| 131,072 | 0.209 | 0.321 | 0.65× |
+| 262,144 | 0.424 | 0.612 | 0.69× |
+
+#### Honest Analysis
+
+**PyTorch wins in absolute latency.** The custom kernel is ~1.5–2.5× slower across all sequence lengths. This is the expected result for the following reasons:
+
+1. **cuBLAS underneath PyTorch.** PyTorch's `Q @ K.T` and `attn @ V` dispatch to cuBLAS GEMMs that are heavily optimized at the hardware level (tensor core utilization, autotuning, persistent kernels). Our kernel does manual warp-shuffle dot products — correct, but not competitive with a library that has thousands of engineer-hours of tuning.
+
+2. **Sequential token loop within each chunk.** Each block iterates over its 256 tokens one at a time in a `for` loop. There is no intra-chunk parallelism over tokens — every iteration hits a `__syncthreads()` barrier. A production Flash-Decoding implementation would tile across both the token and head-dimension axes.
+
+3. **Two kernel launches + `cudaDeviceSynchronize`.** The partial→final pipeline pays kernel launch overhead twice, plus explicit device synchronization between them. Production implementations fuse or pipeline these stages.
+
+**However, the scaling story validates the design.** PyTorch latency degrades **4.8×** from 256 to 262k tokens (0.088 → 0.424 ms). Our kernel degrades **4.1×** over the same 1024× increase in sequence length (0.150 → 0.612 ms). The gap narrows from 0.59× at short sequences to 0.69× at long sequences — the parallelization over KV-cache chunks is doing exactly what Flash-Decoding promises: sub-linear scaling with sequence length.
+
+This is a **pedagogical implementation** demonstrating the two-kernel split + online softmax architecture. Production-grade speedups would require fp16, vectorized loads, multi-head fusion, and persistent kernel techniques — the same optimizations that took Levels 1→2 from 190 GB/s to 1360 GB/s in the GEMV kernels.
 
 ---
 
@@ -336,15 +391,7 @@ cp .env.example .env
 
 ## Roadmap
 
-### Next: Level 4 — Flash-Decoding
-
-During the decode phase (batch=1, a single new query against a growing KV-cache), the compute pattern is not the same as the prefill that original FlashAttention targets. With a single new query there is nothing to parallelize over in the Q dimension — most GPU SMs would sit idle.
-
-The correct technique for this case is **Flash-Decoding**: parallelize over the KV-cache dimension (split it into chunks, compute partial softmax/output per chunk in parallel, and combine with a final reduction step using online-softmax). This is the right design for batch=1 decode, not prefill-style FlashAttention.
-
-**Scoped and defensible:** single head, short context, numerical validation against PyTorch with explicit tolerance (max absolute error < 1e-2 in fp16, tested with multiple seeds).
-
-### Level 5 — Final Integration
+### Next: Level 5 — Final Integration
 
 Minimal C++ inference loop (tokenizer → embeddings → transformer layers using our kernels → sampling), exposed via `pybind11` or `torch.utils.cpp_extension`. The final table with separate columns for TTFT and TPOT, real VRAM, and HumanEval pass@1 alongside latency.
 

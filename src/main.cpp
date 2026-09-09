@@ -1,4 +1,3 @@
-// Incluir flash decoding kernel?? partial + final
 #include "gemv.h"
 #include <cuda_runtime.h>
 #include <iostream>

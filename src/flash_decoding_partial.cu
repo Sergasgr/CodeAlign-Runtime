@@ -24,7 +24,7 @@ __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const
     float d_local = 0.0f;
     float O_local = 0.0f;
 
-    for(int i = 0; i < chunk_size && (start_token + i) < S; i++) { // for(int i = 0; i < chunk_size - 1 && (start_token + i) < S; i++)??
+    for(int i = 0; i < chunk_size && (start_token + i) < S; i++) { 
         int token_idx = start_token + i;
 
         float val = 0.0f;
@@ -61,7 +61,7 @@ __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const
         max_local = max_new;
     }
 
-    d_O_partial[chunk_idx * D + tid] = O_local;
+    d_O_partial[chunk_idx * D + tid] = O_local / d_local;
 
     if(tid == 0) {
         d_lse_partial[chunk_idx] = max_local + logf(d_local);
