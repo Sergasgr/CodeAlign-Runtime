@@ -2,6 +2,7 @@
 #include "gemv.h"
 #include "flash_decoding.h"
 #include "residual_operations.h"
+#include "activations.h"
 #include <cmath>
 
 const int D = 896;
@@ -11,6 +12,7 @@ const int CHUNK_SIZE = 256;
 void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers) {
     float* hidden_states_original = hidden_states; 
 
+    // ATTENTION
     run_RMSNorm_kernel(hidden_states, weights.attn_norm_weight, buffers.norm_result, D);
     
     run_gemv_int4_optimized_kernel(weights.q_proj.q_weight, weights.q_proj.scales, buffers.norm_result, buffers.q_result, weights.q_proj.out_features, weights.q_proj.in_features);
@@ -32,4 +34,16 @@ void forward_transformer_block(float* hidden_states, const TransformerBlockWeigh
     run_gemv_int4_optimized_kernel(weights.o_proj.q_weight, weights.o_proj.scales, buffers.attn_result, buffers.o_result, weights.o_proj.out_features, weights.o_proj.in_features);
 
     run_add_residual_kernel(hidden_states, buffers.o_result, D);
+
+    // MLP
+    run_RMSNorm_kernel(hidden_states, weights.mlp_norm_weight, buffers.mlp_norm_result, D);
+
+    run_gemv_int4_optimized_kernel(weights.gate_proj.q_weight, weights.gate_proj.scales, buffers.mlp_norm_result, buffers.gate_result, weights.gate_proj.out_features, weights.gate_proj.in_features);
+    run_gemv_int4_optimized_kernel(weights.up_proj.q_weight, weights.up_proj.scales, buffers.mlp_norm_result, buffers.up_result, weights.up_proj.out_features, weights.up_proj.in_features);
+
+    run_swiglu_kernel(buffers.gate_result, buffers.up_result, buffers.swiglu_result, weights.gate_proj.out_features);
+
+    run_gemv_int4_optimized_kernel(weights.down_proj.q_weight, weights.down_proj.scales, buffers.swiglu_result, buffers.down_result, weights.down_proj.out_features, weights.down_proj.in_features);
+
+    run_add_residual_kernel(hidden_states, buffers.down_result, D);
 }

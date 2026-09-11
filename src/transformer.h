@@ -36,8 +36,14 @@ struct LayerBuffers {
     float* partial_O;
     float* partial_lse;
     float* o_result;
+    float* mlp_norm_result;
+    float* gate_result;
+    float* up_result;
+    float* swiglu_result;
+    float* down_result;
 };
 
 void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers);
 void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d);
 void run_RoPE_kernel(float* vector, int pos, int d, int head_dim);
+void run_swiglu_kernel(float* gate, float* up, float* result, int d);
