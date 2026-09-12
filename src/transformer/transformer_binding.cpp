@@ -1,5 +1,6 @@
 #include <torch/extension.h>
 #include "memory.h"
+#include "../speculative/speculative.h"
 #include "transformer.h"
 
 class QwenBlock {
@@ -90,4 +91,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def(pybind11::init<int, int, int>())
         .def("forward", &QwenBlock::forward)
         .def("load_weights", &QwenBlock::load_weights);
+
+    m.def("find_candidate_draft", &find_candidate_draft, "Oracle for speculative decoding");
 }

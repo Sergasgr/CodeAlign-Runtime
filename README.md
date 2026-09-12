@@ -19,6 +19,7 @@ A progressive system of hand-written CUDA kernels to serve a code language model
   - [Level 2 — Optimized Kernel](#level-2--optimized-kernel-coalescing-float4-warp-shuffle)
   - [Level 3 — INT4 Quantization + Fused Kernel](#level-3--int4-quantization--fused-kernel)
   - [Level 4 — Flash-Decoding](#level-4--flash-decoding)
+  - [Level 5 — C++ Transformer Engine](#level-5--c-transformer-engine)
 - [Results](#results)
 - [Benchmarking Methodology](#benchmarking-methodology)
 - [Quantization vs. Quality](#quantization-vs-quality)
@@ -38,7 +39,7 @@ A progressive system of hand-written CUDA kernels to serve a code language model
 | 2 — Optimized kernel | ✅ Complete | float4, warp shuffle, coalesced accesses |
 | 3 — INT4 fused | ✅ Complete | Per-group quantization (g=128), dequant+matmul in-kernel |
 | 4 — Flash-Decoding | ✅ Complete | Decode-phase attention (parallelization over KV-cache) |
-| 5 — C++ Integration | 🔲 Planned | Full inference loop, pybind11, end-to-end benchmark |
+| 5 — C++ Transformer Engine | ✅ Complete | Full decode loop with custom kernels, INT4, flash-decoding |
 | 6 — Prompt Lookup Decoding | 🔲 Planned | Algorithmic speculative decoding for code |
 
 ---
@@ -60,22 +61,36 @@ The target use case is IDE code completion — exactly the problem JetBrains des
 ```
 CodeAlign-Runtime/
 ├── src/
-│   ├── gemv.h                    # Unified header — all kernel declarations
+│   ├── gemv.h                    # GEMV kernel declarations
 │   ├── gemv_naive.cu             # Level 1: naive GEMV kernel (one thread per row)
 │   ├── gemv_optimized.cu         # Level 2: float4 + warp shuffle + coalescing
 │   ├── gemv_quantized.cu         # Level 3: INT4 GEMV (naive + optimized)
+│   ├── flash_decoding.h          # Flash-Decoding kernel declarations
 │   ├── flash_decoding_partial.cu # Level 4: partial attention per KV-cache chunk
 │   ├── flash_decoding_final.cu   # Level 4: global reduction over chunk outputs
+│   ├── transformer.h             # Level 5: structs (weights, KV-cache, buffers)
+│   ├── transformer.cpp           # Level 5: forward_transformer_block()
+│   ├── transformer_binding.cpp   # Level 5: QwenBlock pybind11 class
+│   ├── rmsnorm.cu                # Level 5: RMSNorm kernel
+│   ├── rope.cu                   # Level 5: Rotary Position Embedding kernel
+│   ├── activations.cu            # Level 5: SwiGLU activation kernel
+│   ├── residual_operations.h     # Level 5: residual add declaration
+│   ├── residual_ops.cu           # Level 5: residual add kernel
+│   ├── memory.h                  # Level 5: KV-cache + buffer allocation declarations
+│   ├── memory.cpp                # Level 5: GPU memory allocation (cudaMalloc)
 │   ├── main.cpp                  # C++ benchmark harness with CUDA events
-│   ├── binding.cpp               # PyTorch ↔ CUDA binding via torch::Extension
+│   ├── binding.cpp               # PyTorch ↔ CUDA binding (GEMV + flash-decoding)
 │   └── quantization.py           # Per-group INT4 quantization + nn.Linear replacement
 ├── scripts/
 │   ├── baseline.py               # Level 0: PyTorch benchmark (TTFT/TPOT/VRAM/roofline)
 │   ├── baseline_config.py        # Model configuration and hardware constants
 │   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch attention
+│   ├── transformer_inference.py  # Level 5: transformer engine benchmark
+│   ├── inference_config.py       # Level 5: Qwen2.5-0.5B dimensions and constants
 │   └── evaluate_quality.py       # HumanEval pass@1 evaluation of quantized model
-├── CMakeLists.txt                # Native C++/CUDA benchmark build
-├── setup.py                      # PyTorch extension build (torch.utils.cpp_extension)
+├── CMakeLists.txt                # Native C++/CUDA benchmark build (GEMV only)
+├── gemv_setup.py                 # PyTorch extension build (GEMV + flash-decoding kernels)
+├── transformer_setup.py          # PyTorch extension build (transformer engine)
 ├── pyproject.toml                # Python dependencies (uv)
 └── Dockerfile                    # Reproducible environment with CUDA 12.1
 ```

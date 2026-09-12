@@ -1,4 +1,4 @@
-#include "transformer.h"
+#include "../transformer/transformer.h"
 #include <cmath>
 
 __global__ void RoPE_kernel(float* vector, int pos, int d, int head_dim) {

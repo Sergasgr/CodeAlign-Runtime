@@ -55,7 +55,6 @@ def run_evaluation():
     results = evaluator.evaluate("humaneval")
     
     print("\n===RESULTS===")
-    results = evaluator.evaluate("humaneval")
     if results is None:
         print("ERROR: Evaluation returned no results.")
         return

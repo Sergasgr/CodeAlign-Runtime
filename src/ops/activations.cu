@@ -1,4 +1,4 @@
-#include "transformer.h"
+#include "../transformer/transformer.h"
 
 __global__ void swiglu_kernel(float* gate, float* up, float* result, int d) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;

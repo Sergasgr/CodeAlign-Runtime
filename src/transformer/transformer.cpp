@@ -1,7 +1,7 @@
 #include "transformer.h"
-#include "gemv.h"
-#include "flash_decoding.h"
-#include "residual_operations.h"
+#include "../gemv/gemv.h"
+#include "../ops/flash_decoding.h"
+#include "../ops/residual_operations.h"
 #include <cmath>
 #include <cuda_runtime.h>
 
