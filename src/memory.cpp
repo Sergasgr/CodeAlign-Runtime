@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "transformer.h"
+#include <cuda_runtime.h>
 
 void init_kv_cache(LayerKVCache& cache, int max_seq_len, int d) {
     cache.max_seq_len = max_seq_len;

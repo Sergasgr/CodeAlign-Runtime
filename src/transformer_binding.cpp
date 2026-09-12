@@ -46,7 +46,7 @@ void QwenBlock::load_weights(
     torch::Tensor up_weight, torch::Tensor up_scales,
     torch::Tensor down_weight, torch::Tensor down_scales
 ) {
-    weights.attn_norm_weight = attn_norm.data_ptr<float>()
+    weights.attn_norm_weight = attn_norm.data_ptr<float>();
     weights.mlp_norm_weight = mlp_norm.data_ptr<float>();
 
     weights.q_proj.q_weight = (uint32_t*)q_weight.data_ptr<int32_t>();

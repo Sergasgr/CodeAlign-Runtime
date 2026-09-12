@@ -17,6 +17,6 @@ __global__ void RMSNorm_kernel(float* current_token, float* weights, float* resu
 void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d) {
     int block_size = 1024;
     int grid_size = 1;
-    RMSNorm<<<grid_size, block_size>>>(current_token, weights, result, d);
+    RMSNorm_kernel<<<grid_size, block_size>>>(current_token, weights, result, d);
     cudaDeviceSynchronize();
 }

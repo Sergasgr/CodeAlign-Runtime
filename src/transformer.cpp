@@ -2,16 +2,14 @@
 #include "gemv.h"
 #include "flash_decoding.h"
 #include "residual_operations.h"
-#include "activations.h"
 #include <cmath>
+#include <cuda_runtime.h>
 
 const int D = 896;
 const int HEAD_DIM = 64;
 const int CHUNK_SIZE = 256;
 
 void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers) {
-    float* hidden_states_original = hidden_states; 
-
     // ATTENTION
     run_RMSNorm_kernel(hidden_states, weights.attn_norm_weight, buffers.norm_result, D);
     
