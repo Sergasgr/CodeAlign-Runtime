@@ -1,9 +1,9 @@
 #include "flash_decoding.h"
 #include <limits>
 #include <cmath>
-
 #define FULL_MASK 0xffffffff
-const int WARP = 32;
+
+constexpr int WARP = 32;
 
 __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const float* d_V, float* d_O_partial, float* d_lse_partial, int D, int S, int chunk_size) {
     int chunk_idx = blockIdx.x;

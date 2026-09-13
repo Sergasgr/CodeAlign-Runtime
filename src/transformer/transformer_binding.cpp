@@ -10,6 +10,7 @@ class QwenBlock {
         TransformerBlockWeights weights;
     public:
         QwenBlock(int d, int intermediate_dim, int max_seq_len);
+        ~QwenBlock();
         torch::Tensor forward(torch::Tensor hidden_states);
         void load_weights(
             torch::Tensor attn_norm,
@@ -27,6 +28,11 @@ class QwenBlock {
 QwenBlock::QwenBlock(int d, int intermediate_dim, int max_seq_len) {
     init_kv_cache(kv_cache, max_seq_len, d);
     init_buffers(buffers, d, intermediate_dim, max_seq_len);
+}
+
+QwenBlock::~QwenBlock() {
+    free_buffers(buffers);
+    free_kv_cache(kv_cache);
 }
 
 torch::Tensor QwenBlock::forward(torch::Tensor hidden_states) {

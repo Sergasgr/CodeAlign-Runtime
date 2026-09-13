@@ -20,3 +20,14 @@ void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int
     RMSNorm_kernel<<<grid_size, block_size>>>(current_token, weights, result, d);
     cudaDeviceSynchronize();
 }
+
+/*
+The kernel uses `atomicAdd(&s_sum, val * val)` for the reduction, which is functionally correct but:
+
+1. **Non-deterministic ordering** of atomic adds means the sum can vary slightly between runs (floating-point non-associativity).
+2. **Slower** than warp-shuffle + shared-memory reduction for D=896 (all 896 threads serialize on one atomic).
+
+This works correctly for the benchmark. If you want to optimize it later (optional polish), you'd use the same warp-shuffle pattern from your GEMV kernels. Not a blocker for Level 5.
+
+---
+*/

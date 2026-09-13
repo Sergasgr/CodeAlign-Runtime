@@ -1,7 +1,7 @@
 #include "gemv.h"
 #define FULL_MASK 0xffffffff
 
-const int WARP = 32; 
+constexpr int WARP = 32; 
 
 __global__ void gemv_optimized_kernel(const float* d_mat, const float* d_vec, float* d_out_opt, int rows, int cols) {
     int row = (blockIdx.x * blockDim.x + threadIdx.x) / WARP;

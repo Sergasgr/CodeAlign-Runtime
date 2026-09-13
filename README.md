@@ -268,6 +268,70 @@ This is a **pedagogical implementation** demonstrating the two-kernel split + on
 
 ---
 
+### Level 5 — C++ Transformer Engine
+
+**Files:** [`transformer.h`](src/transformer.h), [`transformer.cpp`](src/transformer.cpp), [`transformer_binding.cpp`](src/transformer_binding.cpp), [`rmsnorm.cu`](src/rmsnorm.cu), [`rope.cu`](src/rope.cu), [`activations.cu`](src/activations.cu), [`residual_ops.cu`](src/residual_ops.cu), [`memory.cpp`](src/memory.cpp)
+
+This level assembles every kernel from the previous levels into a single C++ transformer block that executes a complete decode step — the same computation a real LLM performs for each generated token.
+
+#### Architecture
+
+The engine is structured around three pre-allocated C structs defined in [`transformer.h`](src/transformer.h):
+
+- **`TransformerBlockWeights`** — holds raw GPU pointers to all 7 INT4-quantized projection matrices (Q, K, V, O, gate, up, down) plus the two RMSNorm weight vectors. No `torch::Tensor` ownership — the Python side holds the tensors, and the C++ side stores bare `float*`/`uint32_t*` pointers.
+- **`LayerKVCache`** — pre-allocated `(max_seq_len × D)` GPU buffers for keys and values, with a `current_seq_len` counter tracking how many tokens have been cached.
+- **`LayerBuffers`** — all intermediate results (norm output, Q/K/V projections, attention output, MLP gate/up/down) pre-allocated once at initialization. Zero dynamic memory allocation during inference.
+
+The forward pass in [`transformer.cpp`](src/transformer.cpp) chains the operations in the standard transformer decode order:
+
+```
+RMSNorm → Q/K/V projection (INT4 GEMV) → RoPE → KV-cache append
+→ Flash-Decoding attention → O projection → Residual add
+→ RMSNorm → Gate/Up projection → SwiGLU → Down projection → Residual add
+```
+
+Every matrix-vector multiply uses the Level 3 INT4 fused kernel (`run_gemv_int4_optimized_kernel`), and attention uses the Level 4 Flash-Decoding partial + final kernels.
+
+#### New CUDA Kernels
+
+| Kernel | File | What it does |
+|--------|------|-------------|
+| RMSNorm | [`rmsnorm.cu`](src/rmsnorm.cu) | Root Mean Square Layer Normalization — `x / RMS(x) * weight` |
+| RoPE | [`rope.cu`](src/rope.cu) | Rotary Position Embedding — applies position-dependent rotation to Q and K vectors across all heads in a single kernel launch (θ_base=1,000,000, matching Qwen2.5) |
+| SwiGLU | [`activations.cu`](src/activations.cu) | Gated activation — `SiLU(gate) * up` fused in one pass |
+| Residual Add | [`residual_ops.cu`](src/residual_ops.cu) | Element-wise in-place addition for skip connections |
+
+#### PyTorch Integration
+
+[`transformer_binding.cpp`](src/transformer_binding.cpp) exposes a `QwenBlock` Python class via pybind11:
+
+```python
+import codealign_runtime_transformer as cuda_engine
+
+block = cuda_engine.QwenBlock(D=896, intermediate_dim=4864, max_seq_len=2048)
+block.load_weights(attn_norm, q_w, q_s, k_w, k_s, v_w, v_s, o_w, o_s,
+                   mlp_norm, gate_w, gate_s, up_w, up_s, down_w, down_s)
+output = block.forward(hidden_states)  # one decode step
+```
+
+The `QwenBlock` constructor pre-allocates all GPU memory (KV-cache + intermediate buffers) via [`memory.cpp`](src/memory.cpp). After initialization, **zero allocations occur during inference** — every `forward()` call reuses the same buffers.
+
+#### Benchmark Results
+
+Measured over 1000 decode steps with synthetic INT4-quantized weights (single transformer block, Qwen2.5-0.5B dimensions):
+
+| Metric | Value |
+|--------|------:|
+| TPOT (per-token latency) | **1.9535 ms/token** |
+| Theoretical BW ceiling | 1.12 ms/token |
+| % of BW ceiling | **57.3%** |
+
+The 1.9535 ms/token TPOT means **~512 tokens/second** on a single transformer block. The measurement uses CUDA events with warmup discarded, following the same methodology as all previous levels.
+
+> Note: this benchmark measures a single block. The full model (24 layers) would multiply this by the layer count. The TPOT is a kernel-level latency measurement, not an end-to-end generation speed claim.
+
+---
+
 ## Results
 
 ### Isolated Kernel Benchmarks (GEMV on 4864×896 matrix, fp32)
@@ -292,7 +356,7 @@ This is a **pedagogical implementation** demonstrating the two-kernel split + on
 
 > Cells marked with "—" will be filled in during the next formal benchmark run. Scripts are ready and validated.
 
-### Summary Table (to be completed in Level 5)
+### Summary Table
 
 | Level | TTFT p50 (ms) | TPOT p50 (ms/token) | % BW ceiling | VRAM | HumanEval pass@1 | Note |
 |-------|:---:|:---:|:---:|:---:|:---:|------|
@@ -301,7 +365,7 @@ This is a **pedagogical implementation** demonstrating the two-kernel split + on
 | Level 2 — optimized | — | — | — | — | — | |
 | Level 3 — INT4 fused | — | — | — | — | — | vs. bf16 |
 | Level 4 — Flash-Decoding | — | — | — | — | — | |
-| Level 5 — C++ integration | — | — | — | — | — | |
+| Level 5 — C++ engine | — | 1.9535 | 57.3% | — | — | single block |
 | + Prompt Lookup Decoding | — | — | — | — | — | acceptance rate: —% |
 | llama.cpp (Q4_K_M) | — | — | — | — | — | different scheme² |
 
@@ -382,12 +446,18 @@ uv sync
 # Level 0 — PyTorch Baseline
 uv run python -m scripts.baseline
 
-# Build C++/CUDA benchmark (Levels 1-3)
+# Build C++/CUDA benchmark (Levels 1-3 GEMV kernels)
 cmake -B build && cmake --build build
 ./build/gemv_benchmark
 
-# Build PyTorch extension (INT4 kernel for Level 3)
-uv run python setup.py build_ext --inplace
+# Build PyTorch extension — GEMV + Flash-Decoding kernels (Levels 3-4)
+uv run python gemv_setup.py build_ext --inplace
+
+# Build PyTorch extension — Transformer engine (Level 5)
+uv run python transformer_setup.py build_ext --inplace
+
+# Level 5 — Transformer engine benchmark
+uv run python -m scripts.transformer_inference
 
 # Post-quantization quality evaluation
 uv run python -m scripts.evaluate_quality
@@ -406,13 +476,7 @@ cp .env.example .env
 
 ## Roadmap
 
-### Next: Level 5 — Final Integration
-
-Minimal C++ inference loop (tokenizer → embeddings → transformer layers using our kernels → sampling), exposed via `pybind11` or `torch.utils.cpp_extension`. The final table with separate columns for TTFT and TPOT, real VRAM, and HumanEval pass@1 alongside latency.
-
-Comparison: PyTorch eager → Level 1 → Level 2+3 → Level 4 → llama.cpp. Reaching 50-70% of llama.cpp's performance with your own code is a success, not a partial failure.
-
-### Level 6 — Prompt Lookup Decoding
+### Next: Level 6 — Prompt Lookup Decoding
 
 The piece with the best impact/effort ratio, and the only one that is **specific to the use case** — code completion. Source code has extremely high textual redundancy: repeated variable names, recurring structural patterns, edits that literally reuse fragments from the context. This is arguably the best possible case for algorithmic speculative decoding in all of NLP.
 

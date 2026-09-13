@@ -2,7 +2,7 @@
 #include <cstdint>
 #define FULL_MASK 0xffffffff
 
-const int WARP = 32; 
+constexpr int WARP = 32; 
 
 __global__ void gemv_int4_naive_kernel(const uint32_t* d_q_mat, const float* d_scales, const float* d_vec, float* d_out_q, int rows, int cols) {
     int row = blockIdx.x * blockDim.x + threadIdx.x; 

@@ -28,3 +28,26 @@ void init_buffers(LayerBuffers& buffers, int d, int intermediate_dim, int max_se
     cudaMalloc((void**)&buffers.partial_O, max_chunks * d * sizeof(float));     
     cudaMalloc((void**)&buffers.partial_lse, max_chunks * sizeof(float));  
 }
+
+void free_kv_cache(LayerKVCache& cache) {
+    cudaFree(cache.k_cache);
+    cudaFree(cache.v_cache);
+}
+
+void free_buffers(LayerBuffers& buffers) {
+    cudaFree(buffers.norm_result);     
+    cudaFree(buffers.q_result);     
+    cudaFree(buffers.k_result);     
+    cudaFree(buffers.v_result);     
+    cudaFree(buffers.attn_result);     
+    cudaFree(buffers.o_result);     
+    cudaFree(buffers.mlp_norm_result);     
+    cudaFree(buffers.down_result);   
+
+    cudaFree(buffers.gate_result);     
+    cudaFree(buffers.up_result);     
+    cudaFree(buffers.swiglu_result);  
+    
+    cudaFree(buffers.partial_O);     
+    cudaFree(buffers.partial_lse);  
+}

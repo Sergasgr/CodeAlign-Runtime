@@ -7,7 +7,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from accelerate import Accelerator
 from scripts.baseline_config import MODEL
-from src.quantization import replace_linear_layers
+from scripts.quantization import replace_linear_layers
 from bigcode_eval.evaluator import Evaluator
 from bigcode_eval.tasks import get_task
 

@@ -1,6 +1,6 @@
 import torch
 import codealign_runtime_transformer as cuda_engine
-from scripts.inference_config import (
+from inference_config import (
     D, 
     INTERMEDIATE_DIM,
     MAX_SEQ_LEN,
