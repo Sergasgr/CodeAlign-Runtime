@@ -1,17 +1,46 @@
 #include "../transformer/transformer.h"
 #include <cmath>
+
 #define EPS 1e-6f
+#define WARP_SIZE 32
+#define FULL_MASK 0xffffffff
 
 __global__ void RMSNorm_kernel(float* current_token, float* weights, float* result, int d) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    __shared__ float s_sum;
-    if (threadIdx.x == 0) s_sum = 0.0f;
-    __syncthreads();
+    int lane_id = threadIdx.x % WARP_SIZE;
+    int warp_id = threadIdx.x / WARP_SIZE;
+
+    __shared__ float warp_sums[32]; 
+    __shared__ float s_rms;
+
     float val = (id < d) ? current_token[id] : 0.0f;
-    atomicAdd(&s_sum, val * val);
+    float sum = val * val;
+
+    for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
+        sum += __shfl_down_sync(FULL_MASK, sum, offset);
+    }
+
+    if (lane_id == 0) {
+        warp_sums[warp_id] = sum;
+    }
     __syncthreads();
-    float RMS = sqrtf(s_sum / d + EPS);
-    if (id < d) result[id] = (val / RMS) * weights[id];
+
+    if (warp_id == 0) {
+        float warp_sum = (lane_id < (blockDim.x / WARP_SIZE)) ? warp_sums[lane_id] : 0.0f;
+        
+        for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
+            warp_sum += __shfl_down_sync(FULL_MASK, warp_sum, offset);
+        }
+
+        if (lane_id == 0) {
+            s_rms = sqrtf((warp_sum / d) + EPS);
+        }
+    }
+    __syncthreads();
+
+    if (id < d) {
+        result[id] = (val / s_rms) * weights[id];
+    }
 }
 
 void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d) {
@@ -20,14 +49,3 @@ void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int
     RMSNorm_kernel<<<grid_size, block_size>>>(current_token, weights, result, d);
     cudaDeviceSynchronize();
 }
-
-/*
-The kernel uses `atomicAdd(&s_sum, val * val)` for the reduction, which is functionally correct but:
-
-1. **Non-deterministic ordering** of atomic adds means the sum can vary slightly between runs (floating-point non-associativity).
-2. **Slower** than warp-shuffle + shared-memory reduction for D=896 (all 896 threads serialize on one atomic).
-
-This works correctly for the benchmark. If you want to optimize it later (optional polish), you'd use the same warp-shuffle pattern from your GEMV kernels. Not a blocker for Level 5.
-
----
-*/

@@ -311,11 +311,11 @@ Measured over 1000 decode steps with synthetic INT4-quantized weights (single tr
 
 | Metric | Value |
 |--------|------:|
-| TPOT (per-token latency) | **1.9535 ms/token** |
+| TPOT (per-token latency) | **1.7390 ms/token** |
 | Theoretical BW ceiling | 1.12 ms/token |
-| % of BW ceiling | **57.3%** |
+| % of BW ceiling | **64.4%** |
 
-The 1.9535 ms/token TPOT means **~512 tokens/second** on a single transformer block. The measurement uses CUDA events with warmup discarded, following the same methodology as all previous levels.
+The 1.7390 ms/token TPOT means **~575 tokens/second** on a single transformer block. The measurement uses CUDA events with warmup discarded, following the same methodology as all previous levels.
 
 > Note: this benchmark measures a single block. The full model (24 layers) would multiply this by the layer count. The TPOT is a kernel-level latency measurement, not an end-to-end generation speed claim.
 
@@ -363,7 +363,7 @@ The 1.9535 ms/token TPOT means **~512 tokens/second** on a single transformer bl
 | Level 2 — optimized | — | — | — | — | — | |
 | Level 3 — INT4 fused | — | — | — | — | — | vs. bf16 |
 | Level 4 — Flash-Decoding | — | — | — | — | — | |
-| Level 5 — C++ engine | — | 1.9535 | 57.3% | — | — | single block |
+| Level 5 — C++ engine | — | 1.739 | 64.4% | — | — | single block |
 | + Prompt Lookup Decoding | — | — | — | — | — | acceptance rate: —% |
 | llama.cpp (Q4_K_M) | — | — | — | — | — | different scheme² |
 

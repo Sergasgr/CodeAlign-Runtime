@@ -7,10 +7,10 @@ setup(
         CUDAExtension(
             name='codealign_runtime_kernels',
             sources=[
-                'src/binding.cpp',                # Pybind11 bridge (gemv_int4_forward + flash_decoding_forward)
-                'src/gemv_quantized.cu',          # Level 3 kernels (binding.cpp calls these)
-                'src/flash_decoding_partial.cu',  # Level 4 partial kernel
-                'src/flash_decoding_final.cu'     # Level 4 final kernel
+                'benchmarks/gemv_binding.cpp'
+                'src/gemv_quantized.cu',        
+                'src/flash_decoding_partial.cu', 
+                'src/flash_decoding_final.cu' 
             ],
             extra_compile_args={'cxx': ['-O3'], 'nvcc': ['-O3', '-use_fast_math']}
         )
