@@ -18,7 +18,6 @@ __global__ void gemm_optimized_kernel(const float* A, const float* B, float* C, 
         if(row < K && global_col_A < in_features) sA[ty][tx] = A[row * in_features + global_col_A];
         else sA[ty][tx] = 0.0f;
         
-        int global_row_B = col;
         int global_col_B = t * TILE_SIZE + ty;
         if(col < out_features && global_col_B < in_features) sB[ty][tx] = B[col * in_features + global_col_B];
         else sB[ty][tx] = 0.0f;

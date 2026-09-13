@@ -1,14 +1,11 @@
 #include "../src/gemv/gemv.h"
-#inlcude "benchmark.h"
+#include "benchmark_utils.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
 #include <cstdint>
 #include <limits>
 #include <cmath>
- 
-constexpr int GROUP = 128; // Symmetric INT4 group-wise quantization (group size 128)
-constexpr int NUM_ITERATIONS = 100;
 
 int main() {
     int rows = 4864, cols = 896; // MLP Up projection dimensions for Qwen2.5-0.5B
@@ -33,8 +30,21 @@ int main() {
     float *d_mat, *d_vec, *d_out_naive, *d_out_opt, *d_scales, *d_out_q;
     uint32_t *d_q_mat;
 
-    gemv_malloc(d_mat, d_vec, d_out_naive, d_out_opt, d_scales, d_out_q, d_q_mat);
-    gemv_memcpy(d_mat, d_vec, d_out_naive, d_out_opt, d_scales, d_out_q, d_q_mat);
+    cudaMalloc((void**)&d_mat, bytes_mat);
+    cudaMalloc((void**)&d_vec, bytes_vec);
+    cudaMalloc((void**)&d_out_naive, bytes_out);
+    cudaMalloc((void**)&d_out_opt, bytes_out);
+    cudaMalloc((void**)&d_q_mat, bytes_q_mat); 
+    cudaMalloc((void**)&d_scales, bytes_scales);
+    cudaMalloc((void**)&d_out_q, bytes_out);
+
+    cudaMemcpy(d_mat, h_mat.data(), bytes_mat, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_vec, h_vec.data(), bytes_vec, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_out_naive, h_out_naive.data(), bytes_out, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_out_opt, h_out_opt.data(), bytes_out, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_q_mat, h_q_mat.data(), bytes_q_mat, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_scales, h_scales.data(), bytes_scales, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_out_q, h_out_q.data(), bytes_out, cudaMemcpyHostToDevice);
     
     benchmark_kernel("NAIVE KERNEL", [&]() { 
         run_gemv_naive(d_mat, d_vec, d_out_naive, rows, cols); 
@@ -63,11 +73,20 @@ int main() {
     for(int i = 0; i < rows; i++) { 
         if (std::abs(h_out_naive[i] - h_out_opt[i]) > 1e-4 || std::abs(h_out_naive[i] - h_out_q[i]) > 0.05f)  {
             std::cout << "Validation Error in index " << i << "\n";
+            std::cout << "Naive: " << h_out_naive[i] 
+                      << " Opt: " << h_out_opt[i] 
+                      << " Q: " << h_out_q[i] << "\n";
             break;
         }
     }
 
-    gemv_free(d_mat, d_vec, d_out_naive, d_out_opt, d_scales, d_out_q, d_q_mat);
+    cudaFree(d_mat);
+    cudaFree(d_vec);
+    cudaFree(d_out_naive);
+    cudaFree(d_out_opt);
+    cudaFree(d_q_mat);
+    cudaFree(d_scales);
+    cudaFree(d_out_q);
 
     return 0;
 }

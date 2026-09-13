@@ -61,36 +61,25 @@ The target use case is IDE code completion — exactly the problem JetBrains des
 ```
 CodeAlign-Runtime/
 ├── src/
-│   ├── gemv.h                    # GEMV kernel declarations
-│   ├── gemv_naive.cu             # Level 1: naive GEMV kernel (one thread per row)
-│   ├── gemv_optimized.cu         # Level 2: float4 + warp shuffle + coalescing
-│   ├── gemv_quantized.cu         # Level 3: INT4 GEMV (naive + optimized)
-│   ├── flash_decoding.h          # Flash-Decoding kernel declarations
-│   ├── flash_decoding_partial.cu # Level 4: partial attention per KV-cache chunk
-│   ├── flash_decoding_final.cu   # Level 4: global reduction over chunk outputs
-│   ├── transformer.h             # Level 5: structs (weights, KV-cache, buffers)
-│   ├── transformer.cpp           # Level 5: forward_transformer_block()
-│   ├── transformer_binding.cpp   # Level 5: QwenBlock pybind11 class
-│   ├── rmsnorm.cu                # Level 5: RMSNorm kernel
-│   ├── rope.cu                   # Level 5: Rotary Position Embedding kernel
-│   ├── activations.cu            # Level 5: SwiGLU activation kernel
-│   ├── residual_operations.h     # Level 5: residual add declaration
-│   ├── residual_ops.cu           # Level 5: residual add kernel
-│   ├── memory.h                  # Level 5: KV-cache + buffer allocation declarations
-│   ├── memory.cpp                # Level 5: GPU memory allocation (cudaMalloc)
-│   ├── main.cpp                  # C++ benchmark harness with CUDA events
-│   ├── binding.cpp               # PyTorch ↔ CUDA binding (GEMV + flash-decoding)
-│   └── quantization.py           # Per-group INT4 quantization + nn.Linear replacement
+│   ├── gemv/                     # GEMV kernels (naive, optimized, INT4 quantized)
+│   ├── gemm/                     # GEMM kernels (naive, optimized, INT4 quantized)
+│   ├── ops/                      # Flash-Decoding, RMSNorm, RoPE, Activations
+│   ├── transformer/              # Level 5: Transformer engine (structs, memory, loop)
+│   └── speculative/              # Level 6: Prompt Lookup Decoding logic
+├── benchmarks/
+│   ├── gemv_benchmark.cpp        # C++ benchmark harness for GEMV
+│   ├── gemm_benchmark.cpp        # C++ benchmark harness for GEMM
+│   ├── gemv_binding.cpp          # PyTorch ↔ CUDA binding for GEMV
+│   └── benchmark_utils.cpp       # Validation and timing utilities
 ├── scripts/
-│   ├── baseline.py               # Level 0: PyTorch benchmark (TTFT/TPOT/VRAM/roofline)
-│   ├── baseline_config.py        # Model configuration and hardware constants
-│   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch attention
+│   ├── baseline.py               # Level 0: PyTorch benchmark (TTFT/TPOT/VRAM)
+│   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch
 │   ├── transformer_inference.py  # Level 5: transformer engine benchmark
-│   ├── inference_config.py       # Level 5: Qwen2.5-0.5B dimensions and constants
+│   ├── quantization.py           # Per-group INT4 quantization script
 │   └── evaluate_quality.py       # HumanEval pass@1 evaluation of quantized model
-├── CMakeLists.txt                # Native C++/CUDA benchmark build (GEMV only)
-├── gemv_setup.py                 # PyTorch extension build (GEMV + flash-decoding kernels)
-├── transformer_setup.py          # PyTorch extension build (transformer engine)
+├── CMakeLists.txt                # Native C++/CUDA benchmark build
+├── gemv_setup.py                 # PyTorch extension build (GEMV/GEMM + Flash-Decoding)
+├── transformer_setup.py          # PyTorch extension build (Transformer engine)
 ├── pyproject.toml                # Python dependencies (uv)
 └── Dockerfile                    # Reproducible environment with CUDA 12.1
 ```
@@ -334,14 +323,23 @@ The 1.9535 ms/token TPOT means **~512 tokens/second** on a single transformer bl
 
 ## Results
 
-### Isolated Kernel Benchmarks (GEMV on 4864×896 matrix, fp32)
+### Isolated Kernel Benchmarks (GEMV)
 
 | Kernel | Avg Time (ms) | Bandwidth (GB/s) | Note |
 |--------|---:|---:|------|
-| Level 1 — naive | 0.092 | ~190 | Limited by uncoalesced accesses |
-| Level 2 — optimized | 0.013 | ~1360 | **~7× faster** — L2 cache throughput¹ |
-| Level 3 — INT4 naive | — | — | Formal measurement pending |
-| Level 3 — INT4 optimized | — | — | Formal measurement pending |
+| Level 1 — naive (fp32) | 0.092 | 188.7 | Limited by uncoalesced accesses |
+| Level 2 — optimized (fp32) | 0.018 | 959.1 | **~5× faster** — float4 + warp shuffle |
+| Level 3 — INT4 naive | 0.034 | 68.8 | |
+| Level 3 — INT4 optimized | 0.030 | 76.9 | |
+
+### Isolated Kernel Benchmarks (GEMM)
+
+| Kernel | Avg Time (ms) | Bandwidth (GB/s) | Note |
+|--------|---:|---:|------|
+| Level 1 — naive (fp32) | 0.240 | 74.1 | |
+| Level 2 — optimized (fp32) | 0.059 | 300.6 | **~4× faster** |
+| Level 3 — INT4 naive | 0.053 | 51.1 | |
+| Level 3 — INT4 optimized | 0.062 | 43.2 | Quantized GEMM needs tile optimizations |
 
 > ¹ The dataset (17.4 MB) fits in the RTX 5070 Ti's L2 cache. In real inference with the full model (~500 MB in fp16, ~125 MB in INT4), the bottleneck returns to VRAM bandwidth, not cache. See [Benchmarking Methodology](#benchmarking-methodology).
 
@@ -446,12 +444,16 @@ uv sync
 # Level 0 — PyTorch Baseline
 uv run python -m scripts.baseline
 
-# Build C++/CUDA benchmark (Levels 1-3 GEMV kernels)
+# Build C++/CUDA benchmarks (Levels 1-3 GEMV/GEMM kernels)
 cmake -B build && cmake --build build
 ./build/gemv_benchmark
+./build/gemm_benchmark
 
 # Build PyTorch extension — GEMV + Flash-Decoding kernels (Levels 3-4)
 uv run python gemv_setup.py build_ext --inplace
+
+# Build PyTorch extension — GEMM kernels
+uv run python gemm_setup.py build_ext --inplace
 
 # Build PyTorch extension — Transformer engine (Level 5)
 uv run python transformer_setup.py build_ext --inplace
