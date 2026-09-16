@@ -4,7 +4,7 @@ import math
 
 import codealign_runtime_kernels
 
-D = 128   # Head dimension (Qwen2.5-0.5B uses 128-dim heads)
+D = 128   # Head dimension for standalone benchmark
 S = 1024  # Default sequence length (KV-cache tokens)
 
 class HeadAttention:

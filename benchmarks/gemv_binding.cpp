@@ -1,5 +1,6 @@
 #include <torch/extension.h>
 #include "../src/gemv/gemv.h"
+#include "../src/ops/flash_decoding.h"
 
 torch::Tensor gemv_int4_forward(torch::Tensor q_mat, torch::Tensor scales, torch::Tensor vec) {
     TORCH_CHECK(q_mat.is_cuda() && q_mat.is_contiguous(), "q_mat must be a CUDA tensor and must be aligned sequentially contiguous in memory");

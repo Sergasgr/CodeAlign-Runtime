@@ -69,7 +69,7 @@ Testing/
 .cache/
 
 # =========================
-# Python & Entornos Virtuales
+# Python & Virtual Environments
 # =========================
 __pycache__/
 *.py[cod]
@@ -95,7 +95,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Entornos virtuales
+# Virtual Environments
 venv/
 .venv/
 env/
@@ -109,11 +109,11 @@ __pycache__/
 *.egg-info/
 
 # =========================
-# Modelos ML y Datos (¡Crítico!)
+# ML Models & Data (Critical!)
 # =========================
-# Ignora la carpeta donde descargues los pesos de los modelos
+# Ignore the folder where model weights are downloaded
 models/
-# Extensiones comunes de pesos para evitar subirlos por accidente
+# Common weight file extensions to avoid accidental uploads
 *.pt
 *.pth
 *.bin

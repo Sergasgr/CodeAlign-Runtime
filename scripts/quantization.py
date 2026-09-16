@@ -17,7 +17,7 @@ class QuantizedLinearINT4(nn.Module):
             if self.bias is not None: 
                 out += self.bias
             return out.to(x.dtype).view(1, 1, -1)
-        raise NotImplementedError("La fase prefill aún no está implementada") 
+        raise NotImplementedError("Prefill phase not yet implemented") 
             
 def quantize_to_int4(weight: torch.Tensor, group_size: int = 128) -> tuple[torch.Tensor, torch.Tensor]:
     rows, cols = weight.shape

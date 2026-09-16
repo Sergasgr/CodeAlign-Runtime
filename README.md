@@ -63,22 +63,27 @@ CodeAlign-Runtime/
 ├── src/
 │   ├── gemv/                     # GEMV kernels (naive, optimized, INT4 quantized)
 │   ├── gemm/                     # GEMM kernels (naive, optimized, INT4 quantized)
-│   ├── ops/                      # Flash-Decoding, RMSNorm, RoPE, Activations
+│   ├── ops/                      # Flash-Decoding, RMSNorm, RoPE, Activations, KV-cache
 │   ├── transformer/              # Level 5: Transformer engine (structs, memory, loop)
 │   └── speculative/              # Level 6: Prompt Lookup Decoding logic
 ├── benchmarks/
 │   ├── gemv_benchmark.cpp        # C++ benchmark harness for GEMV
 │   ├── gemm_benchmark.cpp        # C++ benchmark harness for GEMM
-│   ├── gemv_binding.cpp          # PyTorch ↔ CUDA binding for GEMV
-│   └── benchmark_utils.cpp       # Validation and timing utilities
+│   ├── gemv_binding.cpp          # PyTorch ↔ CUDA binding (GEMV + Flash-Decoding)
+│   ├── gemm_binding.cpp          # PyTorch ↔ CUDA binding (GEMM)
+│   ├── benchmark_utils.h         # Benchmark template + quantization declarations
+│   └── benchmark_utils.cpp       # Symmetric INT4 quantization for benchmarks
 ├── scripts/
 │   ├── baseline.py               # Level 0: PyTorch benchmark (TTFT/TPOT/VRAM)
+│   ├── baseline_config.py        # Model constants and hardware specs
 │   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch
 │   ├── transformer_inference.py  # Level 5: transformer engine benchmark
+│   ├── inference_config.py       # Qwen2.5-0.5B dimensions and constants
 │   ├── quantization.py           # Per-group INT4 quantization script
 │   └── evaluate_quality.py       # HumanEval pass@1 evaluation of quantized model
 ├── CMakeLists.txt                # Native C++/CUDA benchmark build
-├── gemv_setup.py                 # PyTorch extension build (GEMV/GEMM + Flash-Decoding)
+├── gemv_setup.py                 # PyTorch extension build (GEMV + Flash-Decoding)
+├── gemm_setup.py                 # PyTorch extension build (GEMM)
 ├── transformer_setup.py          # PyTorch extension build (Transformer engine)
 ├── pyproject.toml                # Python dependencies (uv)
 └── Dockerfile                    # Reproducible environment with CUDA 12.1
@@ -115,7 +120,7 @@ Everything measured from here on is reported as **% of this ceiling**, not as an
 
 ### Level 1 — Naive CUDA Kernel
 
-**File:** [`gemv_naive.cu`](src/gemv_naive.cu)
+**File:** [`gemv_naive.cu`](src/gemv/gemv_naive.cu)
 
 One thread per output row. Each thread traverses an entire row of the weight matrix and accumulates the dot product with the input vector:
 
@@ -141,7 +146,7 @@ The benchmark with real model dimensions (4864×896 for Qwen2.5-0.5B's MLP Up pr
 
 ### Level 2 — Optimized Kernel (coalescing, float4, warp shuffle)
 
-**File:** [`gemv_optimized.cu`](src/gemv_optimized.cu)
+**File:** [`gemv_optimized.cu`](src/gemv/gemv_optimized.cu)
 
 Three techniques applied to approach the bandwidth ceiling:
 
@@ -166,7 +171,7 @@ for (int i = 0; i < 5; i++) {
 
 ### Level 3 — INT4 Quantization + Fused Kernel
 
-**Files:** [`gemv_quantized.cu`](src/gemv_quantized.cu), [`quantization.py`](src/quantization.py), [`binding.cpp`](src/binding.cpp)
+**Files:** [`gemv_quantized.cu`](src/gemv/gemv_quantized.cu), [`quantization.py`](scripts/quantization.py), [`gemv_binding.cpp`](benchmarks/gemv_binding.cpp)
 
 This is the piece with the most real business value. Weights are quantized to INT4 and the kernel dequantizes and multiplies in a single pass, **without materializing the weights in fp16 in memory** — quantization reduces latency not through faster computation, but by moving 4× fewer bytes through the memory bus on every token.
 
@@ -186,7 +191,7 @@ The file contains two variants following the same pedagogical progression as the
 
 #### PyTorch Integration
 
-[`quantization.py`](src/quantization.py) exposes a `QuantizedLinearINT4` that serves as a drop-in replacement for `nn.Linear`:
+[`quantization.py`](scripts/quantization.py) exposes a `QuantizedLinearINT4` that serves as a drop-in replacement for `nn.Linear`:
 
 ```python
 class QuantizedLinearINT4(nn.Module):
@@ -198,7 +203,7 @@ class QuantizedLinearINT4(nn.Module):
         raise NotImplementedError("Prefill not yet implemented")
 ```
 
-The `replace_linear_layers()` function recursively traverses the model and replaces all `nn.Linear` layers with their quantized equivalent. The C++ ↔ Python binding is done via `torch.utils.cpp_extension` in [`setup.py`](setup.py).
+The `replace_linear_layers()` function recursively traverses the model and replaces all `nn.Linear` layers with their quantized equivalent. The C++ ↔ Python binding is done via `torch.utils.cpp_extension` in [`gemv_setup.py`](gemv_setup.py).
 
 #### Important Note on llama.cpp Comparison
 
@@ -208,7 +213,7 @@ This project's INT4 scheme (per-group symmetric, g=128) **is not identical** to 
 
 ### Level 4 — Flash-Decoding
 
-**Files:** [`flash_decoding_partial.cu`](src/flash_decoding_partial.cu), [`flash_decoding_final.cu`](src/flash_decoding_final.cu), [`binding.cpp`](src/binding.cpp)
+**Files:** [`flash_decoding_partial.cu`](src/ops/flash_decoding_partial.cu), [`flash_decoding_final.cu`](src/ops/flash_decoding_final.cu), [`gemv_binding.cpp`](benchmarks/gemv_binding.cpp)
 
 During the decode phase (batch=1, a single new query against a growing KV-cache), the compute pattern is not the same as the prefill that original FlashAttention targets. With a single new query there is nothing to parallelize over in the Q dimension — most GPU SMs would sit idle. The correct technique for this case is **Flash-Decoding**: parallelize over the KV-cache dimension.
 
@@ -259,23 +264,23 @@ This is a **pedagogical implementation** demonstrating the two-kernel split + on
 
 ### Level 5 — C++ Transformer Engine
 
-**Files:** [`transformer.h`](src/transformer.h), [`transformer.cpp`](src/transformer.cpp), [`transformer_binding.cpp`](src/transformer_binding.cpp), [`rmsnorm.cu`](src/rmsnorm.cu), [`rope.cu`](src/rope.cu), [`activations.cu`](src/activations.cu), [`residual_ops.cu`](src/residual_ops.cu), [`memory.cpp`](src/memory.cpp)
+**Files:** [`transformer.h`](src/transformer/transformer.h), [`transformer.cpp`](src/transformer/transformer.cpp), [`transformer_binding.cpp`](src/transformer/transformer_binding.cpp), [`rmsnorm.cu`](src/ops/rmsnorm.cu), [`rope.cu`](src/ops/rope.cu), [`activations.cu`](src/ops/activations.cu), [`residual_ops.cu`](src/ops/residual_ops.cu), [`kv_cache_ops.cu`](src/ops/kv_cache_ops.cu), [`memory.cpp`](src/transformer/memory.cpp)
 
 This level assembles every kernel from the previous levels into a single C++ transformer block that executes a complete decode step — the same computation a real LLM performs for each generated token.
 
 #### Architecture
 
-The engine is structured around three pre-allocated C structs defined in [`transformer.h`](src/transformer.h):
+The engine is structured around three pre-allocated C structs defined in [`transformer.h`](src/transformer/transformer.h):
 
 - **`TransformerBlockWeights`** — holds raw GPU pointers to all 7 INT4-quantized projection matrices (Q, K, V, O, gate, up, down) plus the two RMSNorm weight vectors. No `torch::Tensor` ownership — the Python side holds the tensors, and the C++ side stores bare `float*`/`uint32_t*` pointers.
-- **`LayerKVCache`** — pre-allocated `(max_seq_len × D)` GPU buffers for keys and values, with a `current_seq_len` counter tracking how many tokens have been cached.
+- **`LayerKVCache`** — pre-allocated `(NUM_HEADS × max_seq_len × HEAD_DIM)` GPU buffers for keys and values, with a `current_seq_len` counter tracking how many tokens have been cached. The per-head layout enables direct pointer arithmetic for multi-head Flash-Decoding.
 - **`LayerBuffers`** — all intermediate results (norm output, Q/K/V projections, attention output, MLP gate/up/down) pre-allocated once at initialization. Zero dynamic memory allocation during inference.
 
-The forward pass in [`transformer.cpp`](src/transformer.cpp) chains the operations in the standard transformer decode order:
+The forward pass in [`transformer.cpp`](src/transformer/transformer.cpp) chains the operations in the standard transformer decode order:
 
 ```
 RMSNorm → Q/K/V projection (INT4 GEMV) → RoPE → KV-cache append
-→ Flash-Decoding attention → O projection → Residual add
+→ Multi-head Flash-Decoding attention (14 heads × HEAD_DIM=64) → O projection → Residual add
 → RMSNorm → Gate/Up projection → SwiGLU → Down projection → Residual add
 ```
 
@@ -285,14 +290,15 @@ Every matrix-vector multiply uses the Level 3 INT4 fused kernel (`run_gemv_int4_
 
 | Kernel | File | What it does |
 |--------|------|-------------|
-| RMSNorm | [`rmsnorm.cu`](src/rmsnorm.cu) | Root Mean Square Layer Normalization — `x / RMS(x) * weight` |
-| RoPE | [`rope.cu`](src/rope.cu) | Rotary Position Embedding — applies position-dependent rotation to Q and K vectors across all heads in a single kernel launch (θ_base=1,000,000, matching Qwen2.5) |
-| SwiGLU | [`activations.cu`](src/activations.cu) | Gated activation — `SiLU(gate) * up` fused in one pass |
-| Residual Add | [`residual_ops.cu`](src/residual_ops.cu) | Element-wise in-place addition for skip connections |
+| RMSNorm | [`rmsnorm.cu`](src/ops/rmsnorm.cu) | Root Mean Square Layer Normalization — `x / RMS(x) * weight`, warp-shuffle reduction |
+| RoPE | [`rope.cu`](src/ops/rope.cu) | Rotary Position Embedding — applies position-dependent rotation to Q and K vectors across all heads in a single kernel launch (θ_base=1,000,000, matching Qwen2.5) |
+| SwiGLU | [`activations.cu`](src/ops/activations.cu) | Gated activation — `SiLU(gate) * up` fused in one pass |
+| Residual Add | [`residual_ops.cu`](src/ops/residual_ops.cu) | Element-wise in-place addition for skip connections |
+| KV-Cache Append | [`kv_cache_ops.cu`](src/ops/kv_cache_ops.cu) | Inserts K/V vectors into the multi-head cache at `[head, current_seq_len, :]` |
 
 #### PyTorch Integration
 
-[`transformer_binding.cpp`](src/transformer_binding.cpp) exposes a `QwenBlock` Python class via pybind11:
+[`transformer_binding.cpp`](src/transformer/transformer_binding.cpp) exposes a `QwenBlock` Python class via pybind11:
 
 ```python
 import codealign_runtime_transformer as cuda_engine
@@ -303,7 +309,7 @@ block.load_weights(attn_norm, q_w, q_s, k_w, k_s, v_w, v_s, o_w, o_s,
 output = block.forward(hidden_states)  # one decode step
 ```
 
-The `QwenBlock` constructor pre-allocates all GPU memory (KV-cache + intermediate buffers) via [`memory.cpp`](src/memory.cpp). After initialization, **zero allocations occur during inference** — every `forward()` call reuses the same buffers.
+The `QwenBlock` constructor pre-allocates all GPU memory (KV-cache + intermediate buffers) via [`memory.cpp`](src/transformer/memory.cpp). The destructor releases all GPU memory via `cudaFree`. After initialization, **zero allocations occur during inference** — every `forward()` call reuses the same buffers.
 
 #### Benchmark Results
 
@@ -379,7 +385,7 @@ All benchmarks follow the same rules:
 2. **Warmup discarded.** The first 10 iterations are excluded from statistics — the GPU clock and caches need to stabilize.
 3. **Statistics, not anecdotes.** p50/p90/p99 are reported over at least 90 valid iterations. A single number without a distribution is not empirical verification.
 4. **Theoretical ceiling always present.** Every TPOT result is accompanied by its % of the physically minimum possible (model_bytes / GPU_bandwidth).
-5. **Correctness accompanies speed.** The benchmark harness in [`main.cpp`](src/main.cpp) validates each kernel's output against the naive reference with configurable tolerance (`1e-4` for fp32→fp32, `0.05` for INT4 vs. fp32).
+5. **Correctness accompanies speed.** The benchmark harness in [`gemv_benchmark.cpp`](benchmarks/gemv_benchmark.cpp) and [`gemm_benchmark.cpp`](benchmarks/gemm_benchmark.cpp) validates each kernel's output against the naive reference with configurable tolerance (`1e-4` for fp32→fp32, `0.05` for INT4 vs. fp32).
 
 ---
 
