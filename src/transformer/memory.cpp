@@ -1,6 +1,10 @@
 #include "memory.h"
 #include "transformer.h"
 #include <cuda_runtime.h>
+#include <algorithm>
+
+constexpr int MAX_DRAFT_TOKENS = 10;
+constexpr int NUM_SPLITS = 4;
 
 void init_kv_cache(LayerKVCache& cache, int max_seq_len, int d) {
     cache.max_seq_len = max_seq_len;
@@ -25,7 +29,7 @@ void init_buffers(LayerBuffers& buffers, int d, int intermediate_dim, int max_se
     cudaMalloc((void**)&buffers.swiglu_result, intermediate_dim * sizeof(float));  
     
     int max_chunks = (max_seq_len + 256 - 1) / 256;
-    cudaMalloc((void**)&buffers.partial_O, max_chunks * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.partial_O, std::max(max_chunks * d * sizeof(float), NUM_SPLITS * MAX_DRAFT_TOKENS * intermediate_dim * sizeof(float)));     
     cudaMalloc((void**)&buffers.partial_lse, max_chunks * sizeof(float));  
 }
 

@@ -1,4 +1,5 @@
 #include "benchmark_utils.h"
+#include <limits>
 
 constexpr int GROUP = 128; // Symmetric INT4 group-wise quantization (group size 128)
 

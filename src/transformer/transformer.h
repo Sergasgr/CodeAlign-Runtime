@@ -43,7 +43,8 @@ struct LayerBuffers {
     float* down_result;
 };
 
-void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers);
+void run_quantized_linear(const QuantizedLinear& proj, float* input, float* output, float* partial_buffer, int num_tokens);
+void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers, int num_tokens);
 void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d);
 void run_RoPE_kernel(float* vector, int pos, int d, int head_dim);
 void run_swiglu_kernel(float* gate, float* up, float* result, int d);

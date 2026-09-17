@@ -1,6 +1,7 @@
 #include <torch/extension.h>
 #include "memory.h"
 #include "../speculative/speculative.h"
+#include "../ops/logits_ops.h"
 #include "transformer.h"
 
 class QwenBlock {
@@ -23,6 +24,7 @@ class QwenBlock {
             torch::Tensor up_weight, torch::Tensor up_scales,
             torch::Tensor down_weight, torch::Tensor down_scales
         );
+        void rollback_kv_cache(int rejected_tokens);
 };
 
 QwenBlock::QwenBlock(int d, int intermediate_dim, int max_seq_len) {
@@ -38,7 +40,8 @@ QwenBlock::~QwenBlock() {
 torch::Tensor QwenBlock::forward(torch::Tensor hidden_states) {
     TORCH_CHECK(hidden_states.is_cuda(), "hidden_states must be a CUDA tensor");
     TORCH_CHECK(hidden_states.is_contiguous(), "hidden_states must be aligned sequentially contiguous in memory");
-    forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers);
+    int num_tokens = hidden_states.size(0);
+    forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers, num_tokens);
     return hidden_states;
 }
 
@@ -92,11 +95,33 @@ void QwenBlock::load_weights(
     weights.down_proj.in_features = down_scales.size(1);
 }
 
+void QwenBlock::rollback_kv_cache(int rejected_tokens) {
+    kv_cache.current_seq_len -= rejected_tokens;
+}
+
+torch::Tensor fast_argmax(torch::Tensor logits) {
+    TORCH_CHECK(logits.is_cuda(), "logits must be a CUDA tensor");
+    TORCH_CHECK(logits.is_contiguous(), "logits must be aligned sequentially contiguous in memory");
+    TORCH_CHECK(logits.dim() == 2, "logits must be 2D [num_tokens, vocab_size]");
+    
+    int num_tokens = logits.size(0);
+    int vocab_size = logits.size(1);
+    
+    auto options = torch::TensorOptions().dtype(torch::kInt32).device(logits.device());
+    torch::Tensor predicted_tokens = torch::empty({num_tokens}, options);
+    
+    run_compute_argmax_kernel(logits.data_ptr<float>(), predicted_tokens.data_ptr<int32_t>(), num_tokens, vocab_size);
+    
+    return predicted_tokens;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     pybind11::class_<QwenBlock>(m, "QwenBlock")
         .def(pybind11::init<int, int, int>())
         .def("forward", &QwenBlock::forward)
-        .def("load_weights", &QwenBlock::load_weights);
+        .def("load_weights", &QwenBlock::load_weights)
+        .def("rollback_kv_cache", &QwenBlock::rollback_kv_cache);
 
     m.def("find_candidate_draft", &find_candidate_draft, "Oracle for speculative decoding");
+    m.def("fast_argmax", &fast_argmax, "Fast GPU argmax for speculative decoding");
 }

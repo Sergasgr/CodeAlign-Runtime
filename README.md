@@ -52,7 +52,7 @@ Most "optimized inference" portfolio projects look alike: an isolated `tok/s` nu
 2. **Quantization is treated as a trade-off, not a free trick**, and is measured on both sides: speed *and* quality (HumanEval pass@1, using the same evaluation harness from [CodeAlign](https://github.com/Sergasgr/CodeAlign)).
 3. **The project is part of a complete portfolio chain**: data → SFT → DPO (CodeAlign) → quantization → low-latency serving, with the same person behind every link.
 
-The target use case is IDE code completion — exactly the problem JetBrains describes: *"highly optimized, context-aware coding LLMs"*.
+The target use case is IDE code completion — exactly the problem: *"highly optimized, context-aware coding LLMs"*.
 
 ---
 

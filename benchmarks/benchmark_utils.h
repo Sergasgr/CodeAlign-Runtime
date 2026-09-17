@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <cmath>
-#include <limits>
 #include <cuda_runtime.h>
 
 constexpr int NUM_ITERATIONS = 100;
