@@ -20,12 +20,12 @@ A progressive system of hand-written CUDA kernels to serve a code language model
   - [Level 3 — INT4 Quantization + Fused Kernel](#level-3--int4-quantization--fused-kernel)
   - [Level 4 — Flash-Decoding](#level-4--flash-decoding)
   - [Level 5 — C++ Transformer Engine](#level-5--c-transformer-engine)
+  - [Level 6 — Prompt Lookup Decoding](#level-6--prompt-lookup-decoding)
 - [Results](#results)
 - [Benchmarking Methodology](#benchmarking-methodology)
 - [Quantization vs. Quality](#quantization-vs-quality)
 - [Hardware](#hardware)
 - [Setup & Usage](#setup--usage)
-- [Roadmap](#roadmap)
 - [Portfolio Context](#portfolio-context)
 
 ---
@@ -40,7 +40,7 @@ A progressive system of hand-written CUDA kernels to serve a code language model
 | 3 — INT4 fused | ✅ Complete | Per-group quantization (g=128), dequant+matmul in-kernel |
 | 4 — Flash-Decoding | ✅ Complete | Decode-phase attention (parallelization over KV-cache) |
 | 5 — C++ Transformer Engine | ✅ Complete | Full decode loop with custom kernels, INT4, flash-decoding |
-| 6 — Prompt Lookup Decoding | 🔲 Planned | Algorithmic speculative decoding for code |
+| 6 — Prompt Lookup Decoding | ✅ Complete | Speculative decoding: n-gram oracle + batched verify + KV-cache rollback |
 
 ---
 
@@ -63,9 +63,9 @@ CodeAlign-Runtime/
 ├── src/
 │   ├── gemv/                     # GEMV kernels (naive, optimized, INT4 quantized)
 │   ├── gemm/                     # GEMM kernels (naive, optimized, INT4 quantized)
-│   ├── ops/                      # Flash-Decoding, RMSNorm, RoPE, Activations, KV-cache
-│   ├── transformer/              # Level 5: Transformer engine (structs, memory, loop)
-│   └── speculative/              # Level 6: Prompt Lookup Decoding logic
+│   ├── ops/                      # Flash-Decoding, RMSNorm, RoPE, Activations, KV-cache, Argmax
+│   ├── transformer/              # Level 5: Transformer engine (structs, memory, forward loop)
+│   └── speculative/              # Level 6: N-gram oracle for Prompt Lookup Decoding
 ├── benchmarks/
 │   ├── gemv_benchmark.cpp        # C++ benchmark harness for GEMV
 │   ├── gemm_benchmark.cpp        # C++ benchmark harness for GEMM
@@ -78,6 +78,7 @@ CodeAlign-Runtime/
 │   ├── baseline_config.py        # Model constants and hardware specs
 │   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch
 │   ├── transformer_inference.py  # Level 5: transformer engine benchmark
+│   ├── generate_speculative.py   # Level 6: speculative decoding control loop
 │   ├── inference_config.py       # Qwen2.5-0.5B dimensions and constants
 │   ├── quantization.py           # Per-group INT4 quantization script
 │   └── evaluate_quality.py       # HumanEval pass@1 evaluation of quantized model
@@ -284,7 +285,7 @@ RMSNorm → Q/K/V projection (INT4 GEMV) → RoPE → KV-cache append
 → RMSNorm → Gate/Up projection → SwiGLU → Down projection → Residual add
 ```
 
-Every matrix-vector multiply uses the Level 3 INT4 fused kernel (`run_gemv_int4_optimized_kernel`), and attention uses the Level 4 Flash-Decoding partial + final kernels.
+Every linear projection dispatches through `run_quantized_linear`: for single-token decode (`num_tokens == 1`) it uses the Level 3 INT4 GEMV kernel; for multi-token verification (speculative decoding, `num_tokens > 1`) it switches to the Split-K INT4 GEMM kernel. Attention uses the Level 4 Flash-Decoding partial + final kernels.
 
 #### New CUDA Kernels
 
@@ -479,25 +480,6 @@ Copy `.env.example` to `.env` and set your Hugging Face token:
 cp .env.example .env
 # Edit .env with your HF_TOKEN
 ```
-
----
-
-## Roadmap
-
-### Next: Level 6 — Prompt Lookup Decoding
-
-The piece with the best impact/effort ratio, and the only one that is **specific to the use case** — code completion. Source code has extremely high textual redundancy: repeated variable names, recurring structural patterns, edits that literally reuse fragments from the context. This is arguably the best possible case for algorithmic speculative decoding in all of NLP.
-
-**Mechanism:** after generating each token, search the existing context for the longest match with the last N generated tokens. If there's a match, take the following K tokens as a speculative "draft" and verify them in a single forward pass (compute-bound and parallel). Accept the longest prefix that matches what the model would have generated.
-
-No additional model or training required — it's control flow plus a batched forward pass, with no significant extra VRAM.
-
-### Optional Polish
-
-- **Roofline model:** a figure placing Levels 1, 2, and 3 on the arithmetic intensity vs. GFLOPs/s plot. The fp32 kernels fall on the memory-bound diagonal; INT4 shifts to the right — that's the complete visual explanation of why quantization accelerates inference.
-- **CUDA Graphs:** capture the kernel launch sequence for a decode step and replay it without CPU launch overhead.
-- **Nsight Systems:** visualize gaps between kernels on the GPU timeline.
-- **Paged KV-cache:** vLLM-style memory management.
 
 ---
 

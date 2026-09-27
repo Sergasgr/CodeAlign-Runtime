@@ -20,6 +20,7 @@ setup(
                 'src/ops/rmsnorm.cu',              
                 'src/ops/residual_ops.cu',
                 'src/ops/kv_cache_ops.cu',
+                'src/ops/argmax.cu',
                 'src/speculative/speculative.cpp'
             ],
             include_dirs=[os.path.abspath('src')],

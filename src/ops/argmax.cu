@@ -63,8 +63,8 @@ __global__ void compute_argmax_kernel(const float* logits, int* predicted_tokens
 
 } 
 
-void run_compute_argmax_kernel(float* logits, int num_tokens) {
-    int block_size = 256; // 512?
+void run_compute_argmax_kernel(const float* logits, int* predicted_tokens, int num_tokens, int vocab_size) {
+    int block_size = 256;
     int grid_size = num_tokens;
     compute_argmax_kernel<<<grid_size, block_size>>>(logits, predicted_tokens, vocab_size);
     cudaDeviceSynchronize();

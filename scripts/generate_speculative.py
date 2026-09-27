@@ -1,7 +1,7 @@
 import time
 import torch
-import codealign_runtime_kernels 
-from codealign_runtime_kernels import QwenBlock
+import codealign_runtime_transformer as cuda_engine
+from codealign_runtime_transformer import QwenBlock
 
 class SpeculativeDecoder:
     def __init__(self, block: QwenBlock, embed_layer: torch.nn.Embedding, lm_head: torch.nn.Linear, max_seq_len: int):
@@ -14,7 +14,7 @@ class SpeculativeDecoder:
 
     def generate(self, history: list) -> list:
         while len(history) < self.max_seq_len:
-            draft = codealign_runtime_kernels.find_candidate_draft(history, self.N, self.K)
+            draft = cuda_engine.find_candidate_draft(history, self.N, self.K)
             current_tokens = [history[-1]] + draft
             
             input_tensor = torch.tensor(current_tokens, dtype=torch.int32, device="cuda")
@@ -22,7 +22,7 @@ class SpeculativeDecoder:
             out_hidden = self.block.forward(hidden_states)
             logits = self.lm_head(out_hidden)
             
-            predicted_tokens = codealign_runtime_kernels.fast_argmax(logits).tolist()
+            predicted_tokens = cuda_engine.fast_argmax(logits).tolist()
             
             accept_count = 0
             for d, p in zip(draft, predicted_tokens):
@@ -60,7 +60,8 @@ if __name__ == "__main__":
     torch.cuda.synchronize()
     
     generated_tokens = len(final_history) - initial_len
-    total_time = end_time - start_time
+    total_time_ms = start_time.elapsed_time(end_time)
+    total_time = total_time_ms / 1000.0
     tps = generated_tokens / total_time
     
     print(f"--- Level 6 Results ---")

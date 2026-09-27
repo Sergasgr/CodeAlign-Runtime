@@ -15,21 +15,23 @@ void init_kv_cache(LayerKVCache& cache, int max_seq_len, int d) {
 }
 
 void init_buffers(LayerBuffers& buffers, int d, int intermediate_dim, int max_seq_len) {
-    cudaMalloc((void**)&buffers.norm_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.q_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.k_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.v_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.attn_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.o_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.mlp_norm_result, d * sizeof(float));     
-    cudaMalloc((void**)&buffers.down_result, d * sizeof(float));   
+    int max_tokens = MAX_DRAFT_TOKENS + 1;  // draft tokens + 1 current token
 
-    cudaMalloc((void**)&buffers.gate_result, intermediate_dim * sizeof(float));     
-    cudaMalloc((void**)&buffers.up_result, intermediate_dim * sizeof(float));     
-    cudaMalloc((void**)&buffers.swiglu_result, intermediate_dim * sizeof(float));  
+    cudaMalloc((void**)&buffers.norm_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.q_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.k_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.v_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.attn_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.o_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.mlp_norm_result, max_tokens * d * sizeof(float));     
+    cudaMalloc((void**)&buffers.down_result, max_tokens * d * sizeof(float));   
+
+    cudaMalloc((void**)&buffers.gate_result, max_tokens * intermediate_dim * sizeof(float));     
+    cudaMalloc((void**)&buffers.up_result, max_tokens * intermediate_dim * sizeof(float));     
+    cudaMalloc((void**)&buffers.swiglu_result, max_tokens * intermediate_dim * sizeof(float));  
     
     int max_chunks = (max_seq_len + 256 - 1) / 256;
-    cudaMalloc((void**)&buffers.partial_O, std::max(max_chunks * d * sizeof(float), NUM_SPLITS * MAX_DRAFT_TOKENS * intermediate_dim * sizeof(float)));     
+    cudaMalloc((void**)&buffers.partial_O, std::max(max_chunks * d * sizeof(float), NUM_SPLITS * max_tokens * intermediate_dim * sizeof(float)));     
     cudaMalloc((void**)&buffers.partial_lse, max_chunks * sizeof(float));  
 }
 
