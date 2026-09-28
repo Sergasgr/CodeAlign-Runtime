@@ -3,6 +3,8 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 import os
 
 setup(
+    packages=[],
+    py_modules=[],
     name='codealign_runtime_transformer',
     ext_modules=[
         CUDAExtension(
@@ -15,9 +17,9 @@ setup(
                 'src/gemm/gemm_quantized.cu',
                 'src/ops/flash_decoding_partial.cu',
                 'src/ops/flash_decoding_final.cu',
-                'src/ops/rope.cu',                 
-                'src/ops/activations.cu',          
-                'src/ops/rmsnorm.cu',              
+                'src/ops/rope.cu',
+                'src/ops/activations.cu',
+                'src/ops/rmsnorm.cu',
                 'src/ops/residual_ops.cu',
                 'src/ops/kv_cache_ops.cu',
                 'src/ops/argmax.cu',

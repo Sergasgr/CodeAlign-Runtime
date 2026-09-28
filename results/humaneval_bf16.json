@@ -1,0 +1,27 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-09-27T20:19:38+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+    "git_commit": "9974682",
+    "git_dirty": true,
+    "nvidia_driver": "595.91.07",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "compute_capability": "12.0",
+    "transformers": "5.15.1"
+  },
+  "model": "Qwen/Qwen2.5-Coder-0.5B",
+  "precision": "bf16",
+  "dtype": "torch.bfloat16",
+  "int4_layers": 0,
+  "quantize_lm_head": null,
+  "limit": null,
+  "max_length_generation": 512,
+  "decoding": "greedy, n_samples=1",
+  "pass@1": 0.24390243902439024,
+  "raw": {
+    "pass@1": 0.24390243902439024
+  }
+}

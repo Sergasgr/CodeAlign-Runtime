@@ -17,12 +17,11 @@
 # Debugger Files
 *.pdb
 
-# Compiled Dynamic libraries
+# Compiled Dynamic libraries (includes the in-place built PyTorch extensions)
 *.so
 *.dylib
 *.dll
 *.so.*
-
 
 # Fortran module files
 *.mod
@@ -67,6 +66,7 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+.pytest_cache/
 
 # =========================
 # Python & Virtual Environments
@@ -74,10 +74,8 @@ Testing/
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 env/
-build/
 develop-eggs/
 dist/
 downloads/
@@ -98,20 +96,15 @@ MANIFEST
 # Virtual Environments
 venv/
 .venv/
-env/
 .env
 .env.*
 !.env.example
 pip-log.txt
 
-__pycache__/
-*.py[cod]
-*.egg-info/
-
 # =========================
 # ML Models & Data (Critical!)
 # =========================
-# Ignore the folder where model weights are downloaded
+# Downloaded weights and GGUF files (scripts/llama_cpp_benchmark.py writes here)
 models/
 # Common weight file extensions to avoid accidental uploads
 *.pt
@@ -124,7 +117,7 @@ models/
 # =========================
 # CUDA & Profiling (Nsight)
 # =========================
-# Archivos de reporte generados por Nsight Compute y Nsight Systems
+# Nsight Compute / Nsight Systems reports
 *.ncu-rep
 *.nsys-rep
 *.qdrep
@@ -137,3 +130,5 @@ models/
 .idea/
 .DS_Store
 Thumbs.db
+
+# results/*.json IS committed: every number in the README comes from those files

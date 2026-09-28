@@ -1,0 +1,34 @@
+{
+  "benchmark": "gemv",
+  "device": {"name": "NVIDIA GeForce RTX 5070 Ti", "compute_capability": "12.0", "sm_count": 70, "l2_bytes": 50331648, "total_mem_bytes": 16575954944, "cuda_driver": 13020, "cuda_runtime": 13010, "spec_bandwidth_gbps": 896},
+  "shape": {"rows": 4864, "cols": 896, "name": "mlp_up_gate_4864x896"},
+  "iterations": 100, "warmup": 10,
+  "validation": [
+    {"kernel": "fp32_naive mlp_up_gate_4864x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 4.5776367e-05, "max_abs_ref": 35.756935, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_optimized mlp_up_gate_4864x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 3.8146973e-06, "max_abs_ref": 35.756935, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_naive mlp_up_gate_4864x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 4.5776367e-05, "max_abs_ref": 36.125408, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_optimized mlp_up_gate_4864x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 5.7220459e-06, "max_abs_ref": 36.125408, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_naive mlp_down_896x4864", "reference": "cpu_fp32", "pass": true, "max_abs_err": 0.00017929077, "max_abs_ref": 72.466728, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_optimized mlp_down_896x4864", "reference": "cpu_fp32", "pass": true, "max_abs_err": 1.1444092e-05, "max_abs_ref": 72.466728, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_naive mlp_down_896x4864", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 0.00015258789, "max_abs_ref": 75.379761, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_optimized mlp_down_896x4864", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 1.9073486e-05, "max_abs_ref": 75.379761, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_naive attn_q_o_896x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 3.4332275e-05, "max_abs_ref": 35.998272, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_optimized attn_q_o_896x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 3.8146973e-06, "max_abs_ref": 35.998272, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_naive attn_q_o_896x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 2.8610229e-05, "max_abs_ref": 35.300972, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_optimized attn_q_o_896x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 4.7683716e-06, "max_abs_ref": 35.300972, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_naive attn_k_v_128x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 3.2424927e-05, "max_abs_ref": 27.481174, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "fp32_optimized attn_k_v_128x896", "reference": "cpu_fp32", "pass": true, "max_abs_err": 2.6226044e-06, "max_abs_ref": 27.481174, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_naive attn_k_v_128x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 1.5258789e-05, "max_abs_ref": 27.727869, "atol": 0.001, "rtol": 0.0001},
+    {"kernel": "int4_optimized attn_k_v_128x896", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 3.8146973e-06, "max_abs_ref": 27.727869, "atol": 0.001, "rtol": 0.0001}
+  ],
+  "timings": [
+    {"kernel": "fp32_naive", "cache": "hot", "p50_ms": 0.093008, "p90_ms": 0.095823999, "p99_ms": 0.66085601, "mean_ms": 0.11788416, "bytes": 17455616, "gbps_p50": 187.67865, "pct_of_spec_bw": 20.946278},
+    {"kernel": "fp32_optimized", "cache": "hot", "p50_ms": 0.014576, "p90_ms": 0.017228801, "p99_ms": 0.12939008, "mean_ms": 0.02157888, "bytes": 17455616, "gbps_p50": 1197.5587, "pct_of_spec_bw": 133.65611},
+    {"kernel": "int4_naive", "cache": "hot", "p50_ms": 0.034784, "p90_ms": 0.036156799, "p99_ms": 0.44913536, "mean_ms": 0.05159296, "bytes": 2338304, "gbps_p50": 67.22355, "pct_of_spec_bw": 7.5026284},
+    {"kernel": "int4_optimized", "cache": "hot", "p50_ms": 0.031280001, "p90_ms": 0.032703999, "p99_ms": 0.58928097, "mean_ms": 0.04253184, "bytes": 2338304, "gbps_p50": 74.753963, "pct_of_spec_bw": 8.3430762},
+    {"kernel": "fp32_naive", "cache": "cold", "p50_ms": 0.097856, "p90_ms": 0.099120002, "p99_ms": 0.66016257, "mean_ms": 0.12434688, "bytes": 17455616, "gbps_p50": 178.38064, "pct_of_spec_bw": 19.908554},
+    {"kernel": "fp32_optimized", "cache": "cold", "p50_ms": 0.033504002, "p90_ms": 0.035328001, "p99_ms": 0.13827904, "mean_ms": 0.03742464, "bytes": 17455616, "gbps_p50": 521.00093, "pct_of_spec_bw": 58.147425},
+    {"kernel": "int4_naive", "cache": "cold", "p50_ms": 0.057792, "p90_ms": 0.059603199, "p99_ms": 0.36269823, "mean_ms": 0.06677504, "bytes": 2338304, "gbps_p50": 40.460686, "pct_of_spec_bw": 4.5157016},
+    {"kernel": "int4_optimized", "cache": "cold", "p50_ms": 0.030848, "p90_ms": 0.035049599, "p99_ms": 0.33838912, "mean_ms": 0.04033984, "bytes": 2338304, "gbps_p50": 75.800829, "pct_of_spec_bw": 8.459914}
+  ]
+}

@@ -26,7 +26,7 @@ __global__ void gemv_int4_optimized_kernel(const uint32_t* d_q_mat, const float*
     int row = (blockIdx.x * blockDim.x + threadIdx.x) / WARP;
     int lane_id = threadIdx.x % WARP;
     const uint4* d_q_mat4 = reinterpret_cast<const uint4*>(d_q_mat);
-    if(cols % 4 == 0 && row < rows) { 
+    if(cols % 32 == 0 && row < rows) {
         float sum = 0.0f;
         for(int i = lane_id; i < cols / 32; i += WARP) {
             uint4 q_weights = d_q_mat4[row * (cols / 32) + i];

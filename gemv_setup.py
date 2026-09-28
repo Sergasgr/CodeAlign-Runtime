@@ -2,6 +2,8 @@ from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
+    packages=[],
+    py_modules=[],
     name='codealign_runtime_kernels',
     ext_modules=[
         CUDAExtension(

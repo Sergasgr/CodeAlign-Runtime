@@ -1,0 +1,142 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-09-27T19:57:07+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+    "git_commit": "9974682",
+    "git_dirty": true,
+    "nvidia_driver": "595.91.07",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "compute_capability": "12.0",
+    "transformers": "5.15.1"
+  },
+  "model": "Qwen/Qwen2.5-Coder-0.5B",
+  "ngram": 3,
+  "max_draft": 5,
+  "max_new_tokens": 256,
+  "prompts": [
+    {
+      "prompt": "refactor_type_hints",
+      "prompt_tokens": 86,
+      "greedy": {
+        "new_tokens": 256,
+        "forwards": 256,
+        "drafted": 0,
+        "accepted": 0,
+        "seconds": 11.760901716999797,
+        "prefill_seconds": 1.2095703939994564,
+        "acceptance_rate": 0.0,
+        "tokens_per_forward": 1.0,
+        "tokens_per_second": 21.767038460151806
+      },
+      "pld": {
+        "new_tokens": 256,
+        "forwards": 48,
+        "drafted": 227,
+        "accepted": 208,
+        "seconds": 10.478090691000034,
+        "prefill_seconds": 1.0974620439992577,
+        "acceptance_rate": 0.9162995594713657,
+        "tokens_per_forward": 5.333333333333333,
+        "tokens_per_second": 24.431932071354044
+      },
+      "speedup": 1.1224279369047274,
+      "identical_to_greedy": true,
+      "first_divergence": null,
+      "pld_text": "    def __init__(self, name, unit_price, quantity=0):\n        self.name = name\n        self.unit_price = unit_price\n        self.quantity = quantity\n\n    def total_cost(self):\n        return self.unit_price * self.quantity\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n       "
+    },
+    {
+      "prompt": "cpp_getters_setters",
+      "prompt_tokens": 38,
+      "greedy": {
+        "new_tokens": 256,
+        "forwards": 256,
+        "drafted": 0,
+        "accepted": 0,
+        "seconds": 10.112466735999988,
+        "prefill_seconds": 0.3428594029992382,
+        "acceptance_rate": 0.0,
+        "tokens_per_forward": 1.0,
+        "tokens_per_second": 25.315287227462512
+      },
+      "pld": {
+        "new_tokens": 256,
+        "forwards": 193,
+        "drafted": 172,
+        "accepted": 63,
+        "seconds": 12.786655474001236,
+        "prefill_seconds": 0.34220738200019696,
+        "acceptance_rate": 0.36627906976744184,
+        "tokens_per_forward": 1.3264248704663213,
+        "tokens_per_second": 20.02087258239795
+      },
+      "speedup": 0.7908609688093493,
+      "identical_to_greedy": true,
+      "first_divergence": null,
+      "pld_text": "    // Getter methods\n    int getId() {\n        return id;\n    }\n\n    std::string getName() {\n        return name;\n    }\n\n    std::string getEmail() {\n        return email;\n    }\n\n    // Setter methods\n    void setId(int id) {\n        this->id = id;\n    }\n\n    void setName(std::string name) {\n        this->name = name;\n    }\n\n    void setEmail(std::string email) {\n        this->email = email;\n    }\n};\n\nint main() {\n    // Create an instance of the User class\n    User user;\n    // Set the values of the instance's members\n    user.setId(1);\n    user.setName(\"John Doe\");\n    user.setEmail(\"john.doe@example.com\");\n    // Print the values of the instance's members\n    std::cout << \"User ID: \" << user.getId() << std::endl;\n    std::cout << \"User Name: \" << user.getName() << std::endl;\n    std::cout << \"User Email: \" << user.getEmail() << std::endl;\n    // Get the values of the instance's members\n    std::cout << \"User ID: \" << user.getId() << std::endl;\n    std::cout << \""
+    },
+    {
+      "prompt": "unit_tests",
+      "prompt_tokens": 94,
+      "greedy": {
+        "new_tokens": 69,
+        "forwards": 69,
+        "drafted": 0,
+        "accepted": 0,
+        "seconds": 2.3050867589990958,
+        "prefill_seconds": 1.2654866039993067,
+        "acceptance_rate": 0.0,
+        "tokens_per_forward": 1.0,
+        "tokens_per_second": 29.933797385553014
+      },
+      "pld": {
+        "new_tokens": 69,
+        "forwards": 33,
+        "drafted": 45,
+        "accepted": 36,
+        "seconds": 2.2717618869992293,
+        "prefill_seconds": 1.263452443999995,
+        "acceptance_rate": 0.8,
+        "tokens_per_forward": 2.090909090909091,
+        "tokens_per_second": 30.372901488871314
+      },
+      "speedup": 1.0146691747011767,
+      "identical_to_greedy": true,
+      "first_divergence": null,
+      "pld_text": "        self.assertEqual(slugify(\"Hello World!\"), \"hello-world\")\n\n    def test_no_punctuation(self):\n        self.assertEqual(slugify(\"Hello World\"), \"hello-world\")\n\n    def test_no_slashes(self):\n        self.assertEqual(slugify(\"Hello World\"), \"hello-world\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()<|endoftext|>"
+    },
+    {
+      "prompt": "open_ended_control",
+      "prompt_tokens": 18,
+      "greedy": {
+        "new_tokens": 256,
+        "forwards": 256,
+        "drafted": 0,
+        "accepted": 0,
+        "seconds": 9.327083026000764,
+        "prefill_seconds": 0.13484692400015774,
+        "acceptance_rate": 0.0,
+        "tokens_per_forward": 1.0,
+        "tokens_per_second": 27.44695198770701
+      },
+      "pld": {
+        "new_tokens": 256,
+        "forwards": 70,
+        "drafted": 191,
+        "accepted": 186,
+        "seconds": 7.937778159001027,
+        "prefill_seconds": 0.13150904400026775,
+        "acceptance_rate": 0.9738219895287958,
+        "tokens_per_forward": 3.657142857142857,
+        "tokens_per_second": 32.250838316728384
+      },
+      "speedup": 1.1750244009306734,
+      "identical_to_greedy": true,
+      "first_divergence": null,
+      "pld_text": "\nI'm trying to write a small command-line todo application using argparse and a JSON file for storage. I'm using Python 3.7.3. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure"
+    }
+  ],
+  "overall_speedup": 1.0009336129469983
+}

@@ -1,4 +1,7 @@
-MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+from scripts.inference_config import MODEL
+from scripts.roofline import GPU_BANDWIDTH_GBPS
+
+__all__ = ["MODEL", "GPU_BANDWIDTH_GBPS", "PROMPT", "NUM_ITERATIONS", "WARMUP_ITERATIONS", "MAX_TOKENS"]
 
 PROMPT = """def calculate_fibonacci(n):
     if n <= 0:
@@ -12,13 +15,5 @@ PROMPT = """def calculate_fibonacci(n):
 """
 
 NUM_ITERATIONS = 100
+WARMUP_ITERATIONS = 10
 MAX_TOKENS = 50
-
-# RTX 5070 Ti GDDR7 — theoretical memory bandwidth from spec sheet
-GPU_BANDWIDTH_GBPS = 896.0
-# Model parameters (0.5B = 0.5)
-MODEL_PARAMS_BILLIONS = 0.5 
-# Calculate the model weight (2 bytes per parameter in fp16/bf16)
-MODEL_BYTES = MODEL_PARAMS_BILLIONS * 1e9 * 2
-# Physical limit: minimum possible ms/token (Bytes / Bandwidth)s
-THEORETICAL_MIN_TPOT_MS = (MODEL_BYTES / (GPU_BANDWIDTH_GBPS * 1e9)) * 1000

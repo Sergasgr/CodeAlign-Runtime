@@ -14,6 +14,8 @@ __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const
     extern __shared__ float s_mem[];
     float* s_Q = s_mem;
     float* warp_sums = s_mem + D;
+    
+    __shared__ float s_score;
 
     if(tid < D) s_Q[tid] = d_Q[tid];
     __syncthreads();
@@ -48,11 +50,11 @@ __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const
                 S_i += warp_sums[w];
             }
             S_i /= sqrtf((float)D);
-            warp_sums[0] = S_i;
+            s_score = S_i;
         }
-        __syncthreads(); 
+        __syncthreads();
 
-        float S_i = warp_sums[0];
+        float S_i = s_score;
 
         float max_new = fmaxf(max_local, S_i);
         float correction = expf(max_local - max_new);

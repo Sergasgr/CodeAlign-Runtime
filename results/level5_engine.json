@@ -1,0 +1,137 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-09-27T19:55:11+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+    "git_commit": "9974682",
+    "git_dirty": true,
+    "nvidia_driver": "595.91.07",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "compute_capability": "12.0",
+    "transformers": "5.15.1"
+  },
+  "model": "Qwen/Qwen2.5-Coder-0.5B",
+  "quantize_lm_head": true,
+  "iterations": 200,
+  "warmup": 20,
+  "max_seq_len": 2048,
+  "block": [
+    {
+      "p50_ms": 1.358527958393097,
+      "p90_ms": 2.02257924079895,
+      "p99_ms": 2.4162573456764216,
+      "mean_ms": 1.5488952016830444,
+      "n": 200,
+      "context": 128,
+      "ceiling_ms": 0.008999428571428571,
+      "pct_of_ceiling_p50": 0.6624397029026429,
+      "bytes": 8063488
+    },
+    {
+      "p50_ms": 2.088912010192871,
+      "p90_ms": 2.0935391187667847,
+      "p99_ms": 2.0995356488227843,
+      "mean_ms": 2.0892560029029847,
+      "n": 200,
+      "context": 512,
+      "ceiling_ms": 0.009438285714285715,
+      "pct_of_ceiling_p50": 0.45182782559684115,
+      "bytes": 8456704
+    },
+    {
+      "p50_ms": 2.0895040035247803,
+      "p90_ms": 2.095769500732422,
+      "p99_ms": 2.2164007401466366,
+      "mean_ms": 2.096349605321884,
+      "n": 200,
+      "context": 1024,
+      "ceiling_ms": 0.010023428571428572,
+      "pct_of_ceiling_p50": 0.47970372655520493,
+      "bytes": 8980992
+    },
+    {
+      "p50_ms": 2.089359998703003,
+      "p90_ms": 2.0943584203720094,
+      "p99_ms": 2.2154987668991084,
+      "mean_ms": 2.0937143969535827,
+      "n": 200,
+      "context": 2048,
+      "ceiling_ms": 0.011193714285714286,
+      "pct_of_ceiling_p50": 0.5357484728655152,
+      "bytes": 10029568
+    }
+  ],
+  "model_decode": [
+    {
+      "p50_ms": 33.580623626708984,
+      "p90_ms": 49.069790267944335,
+      "p99_ms": 69.96211540222163,
+      "mean_ms": 37.83378051757813,
+      "n": 200,
+      "context": 128,
+      "ceiling_ms": 0.2967082857142857,
+      "pct_of_ceiling_p50": 0.8835699092803421,
+      "tokens_per_s_p50": 29.77907769421623,
+      "bytes": 265850624
+    },
+    {
+      "p50_ms": 56.088016510009766,
+      "p90_ms": 83.88438262939452,
+      "p99_ms": 128.00627761840815,
+      "mean_ms": 61.63544235229492,
+      "n": 200,
+      "context": 512,
+      "ceiling_ms": 0.30724085714285715,
+      "pct_of_ceiling_p50": 0.5477834237337048,
+      "tokens_per_s_p50": 17.829120411514904,
+      "bytes": 275287808
+    },
+    {
+      "p50_ms": 56.02684783935547,
+      "p90_ms": 84.21106033325195,
+      "p99_ms": 90.17665367126462,
+      "mean_ms": 59.56991548538208,
+      "n": 200,
+      "context": 1024,
+      "ceiling_ms": 0.3212842857142857,
+      "pct_of_ceiling_p50": 0.5734470135380398,
+      "tokens_per_s_p50": 17.84858578635867,
+      "bytes": 287870720
+    },
+    {
+      "p50_ms": 56.02124786376953,
+      "p90_ms": 56.36950492858887,
+      "p99_ms": 57.33170127868652,
+      "mean_ms": 56.14178997039795,
+      "n": 200,
+      "context": 2048,
+      "ceiling_ms": 0.3493711428571428,
+      "pct_of_ceiling_p50": 0.6236404153415701,
+      "tokens_per_s_p50": 17.850369960193753,
+      "bytes": 313036544
+    }
+  ],
+  "e2e": {
+    "prompt_tokens": 53,
+    "generated_tokens": 128,
+    "ttft_ms": 553.6841880002612,
+    "ttft_note": "chunked prefill through the decode/verify path (11 tokens per forward), not optimized",
+    "tpot": {
+      "p50_ms": 31.45734405517578,
+      "p90_ms": 40.44127883911133,
+      "p99_ms": 42.458345642089846,
+      "mean_ms": 31.52404912813442,
+      "n": 127
+    },
+    "sample_text": "    with open(path, encoding=\"utf-8\") as file:\n        users = json.load(file)\n        users = [User(**user) for user in users]\n    return users\n\n\ndef save_users(users: list[User], path: str) -> None:\n    \"\"\"Save users to a JSON file.\"\"\"\n    with open(path, encoding=\"utf-8\") as file:\n        json.dump(users, file, ensure_ascii=False, indent=4)\n    print(\"Users saved!\")\n\n\nif __name__ == \"__main__\":\n    users = load_users(\"users.json\")\n    print(users)\n    save_users(users, \"users"
+  },
+  "memory": {
+    "torch_tensors_mb": 510.533203125,
+    "cuda_buffers_mb": 87.961669921875,
+    "load_peak_torch_mb": 2269.67626953125,
+    "resident_mb": 598.494873046875,
+    "decode_peak_mb": 599.108642578125
+  }
+}

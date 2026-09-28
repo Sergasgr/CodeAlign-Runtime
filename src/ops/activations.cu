@@ -4,7 +4,7 @@ __global__ void swiglu_kernel(float* gate, float* up, float* result, int d) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < d) {
         float x = gate[id];
-        float silu = x / (1.0 + expf(-x));
+        float silu = x / (1.0f + expf(-x));
         result[id] = silu * up[id];
     }
 }

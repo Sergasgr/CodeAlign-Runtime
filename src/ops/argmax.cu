@@ -69,5 +69,3 @@ void run_compute_argmax_kernel(const float* logits, int* predicted_tokens, int n
     compute_argmax_kernel<<<grid_size, block_size>>>(logits, predicted_tokens, vocab_size);
     cudaDeviceSynchronize();
 }
-
-

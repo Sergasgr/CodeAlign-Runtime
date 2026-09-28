@@ -1,22 +1,36 @@
 [project]
 name = "codealign-runtime"
-version = "0.1.0"
-description = "Minimal C++/CUDA inference engine for small code models"
+version = "1.0.0"
+description = "Low-latency C++/CUDA inference engine for small code models"
 readme = "README.md"
-requires-python = ">=3.10"
+license = "MIT"
+requires-python = ">=3.12"
 dependencies = [
     "torch>=2.1.0",
     "transformers>=4.35.0",
     "accelerate>=0.24.1",
     "numpy>=2.2.6",
     "setuptools>=84.0.0",
+    "ninja>=1.11",
     "bigcode-eval",
     "datasets>=5.0.1",
 ]
 
-[build-system]
-requires = ["setuptools", "torch"]
-build-backend = "setuptools.build_meta"
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+# Not an installable package: the CUDA extensions are built in place with the *_setup.py scripts
+# and the Python entry points are run as `python -m scripts.<name>` from the repo root.
+[tool.uv]
+package = false
 
 [tool.uv.sources]
-bigcode-eval = { git = "https://github.com/bigcode-project/bigcode-evaluation-harness.git" }
+bigcode-eval = { git = "https://github.com/bigcode-project/bigcode-evaluation-harness.git", rev = "8fc5bae6479c4fbbb28c3f8b644f6a15b3f3b5bd" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "gpu: needs a CUDA GPU and the compiled extensions (skipped otherwise)",
+    "real_model: downloads Qwen2.5-Coder-0.5B from the Hugging Face Hub",
+]
