@@ -1,0 +1,13 @@
+# --- GitHub language statistics (Linguist) ---
+
+# Every .h in this repo is a C++ header. Linguist classifies small headers without
+# C++-only syntax (e.g. src/ops/*.h) as C.
+*.h linguist-language=C++
+
+# Generated data: excluded from language stats and collapsed in diffs.
+results/** linguist-generated=true
+uv.lock linguist-generated=true
+
+# --- Line endings ---
+# build.sh must keep LF endings to run (e.g. when checked out on Windows and used in Docker).
+*.sh text eol=lf
