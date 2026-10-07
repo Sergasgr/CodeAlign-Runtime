@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "logits_ops.h"
 #include <cuda_runtime.h>
 
@@ -63,9 +64,8 @@ __global__ void compute_argmax_kernel(const float* logits, int* predicted_tokens
 
 } 
 
-void run_compute_argmax_kernel(const float* logits, int* predicted_tokens, int num_tokens, int vocab_size) {
+void run_compute_argmax_kernel(const float* logits, int* predicted_tokens, int num_tokens, int vocab_size, cudaStream_t stream) {
     int block_size = 256;
     int grid_size = num_tokens;
-    compute_argmax_kernel<<<grid_size, block_size>>>(logits, predicted_tokens, vocab_size);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(compute_argmax_kernel, grid_size, block_size, 0, stream, logits, predicted_tokens, vocab_size);
 }

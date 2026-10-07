@@ -1,4 +1,5 @@
 #pragma once
+#include <cuda_runtime.h>
 #include <cstdint>
 
 constexpr int MAX_DRAFT_TOKENS = 10; // Max tokens a single forward() can process: 1 current token + up to 10 draft tokens (Level 6).
@@ -62,8 +63,8 @@ struct LayerBuffers {
     float* down_result;      // [MAX_TOKENS, hidden]
 };
 
-void run_quantized_linear(const QuantizedLinear& proj, float* input, float* output, float* partial_buffer, int num_tokens);
-void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers, const ModelDims& dims, int num_tokens);
-void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d);
-void run_RoPE_kernel(float* vector, int pos, int d, int head_dim);
-void run_swiglu_kernel(float* gate, float* up, float* result, int d);
+void run_quantized_linear(const QuantizedLinear& proj, float* input, float* output, float* partial_buffer, int num_tokens, cudaStream_t stream = 0);
+void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers, const ModelDims& dims, int num_tokens, cudaStream_t stream = 0);
+void run_RMSNorm_kernel(float* current_token, float* weights, float* result, int d, int num_tokens, cudaStream_t stream = 0);
+void run_RoPE_kernel(float* vector, int base_pos, int d, int head_dim, int num_tokens, cudaStream_t stream = 0);
+void run_swiglu_kernel(float* gate, float* up, float* result, int d, cudaStream_t stream = 0);

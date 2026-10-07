@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "gemm.h"
 
 __global__ void gemm_naive_kernel(const float* A, const float* B, float* C, int K, int in_features, int out_features) {
@@ -12,9 +13,8 @@ __global__ void gemm_naive_kernel(const float* A, const float* B, float* C, int 
     }
 }
 
-void run_gemm_naive(const float* A, const float* B, float* C, int K, int in_features, int out_features) {
+void run_gemm_naive(const float* A, const float* B, float* C, int K, int in_features, int out_features, cudaStream_t stream) {
     dim3 block_size(16, 16);
     dim3 grid_size((out_features + 15) / 16, (K + 15) / 16);
-    gemm_naive_kernel<<<grid_size, block_size>>>(A, B, C, K, in_features, out_features);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_naive_kernel, grid_size, block_size, 0, stream, A, B, C, K, in_features, out_features);
 }

@@ -21,15 +21,15 @@
     {"kernel": "int4_splitk M3_attn_k_896->128", "reference": "cpu_dequantized_int4", "pass": true, "max_abs_err": 8.5830688e-06, "max_abs_ref": 26.880909, "atol": 0.001, "rtol": 0.0001}
   ],
   "timings": [
-    {"kernel": "fp32_naive", "cache": "hot", "p50_ms": 0.239712, "p90_ms": 0.24099199, "p99_ms": 0.24160097, "mean_ms": 0.23975392, "bytes": 17801216, "gbps_p50": 74.260846, "pct_of_spec_bw": 8.2880409},
-    {"kernel": "fp32_tiled", "cache": "hot", "p50_ms": 0.06072, "p90_ms": 0.062144, "p99_ms": 0.19005665, "mean_ms": 0.0680576, "bytes": 17801216, "gbps_p50": 293.1689, "pct_of_spec_bw": 32.719744},
-    {"kernel": "int4_naive", "cache": "hot", "p50_ms": 0.052032001, "p90_ms": 0.0538368, "p99_ms": 0.056998722, "mean_ms": 0.05338624, "bytes": 2683904, "gbps_p50": 51.581795, "pct_of_spec_bw": 5.7568967},
-    {"kernel": "int4_tiled", "cache": "hot", "p50_ms": 0.057456002, "p90_ms": 0.0592352, "p99_ms": 0.18936321, "mean_ms": 0.06405888, "bytes": 2683904, "gbps_p50": 46.712335, "pct_of_spec_bw": 5.2134303},
-    {"kernel": "int4_splitk", "cache": "hot", "p50_ms": 0.059119999, "p90_ms": 0.059615999, "p99_ms": 0.061751041, "mean_ms": 0.0587344, "bytes": 2683904, "gbps_p50": 45.397565, "pct_of_spec_bw": 5.0666925},
-    {"kernel": "fp32_naive", "cache": "cold", "p50_ms": 0.244672, "p90_ms": 0.2469632, "p99_ms": 0.2496032, "mean_ms": 0.24631104, "bytes": 17801216, "gbps_p50": 72.755428, "pct_of_spec_bw": 8.1200254},
-    {"kernel": "fp32_tiled", "cache": "cold", "p50_ms": 0.075935997, "p90_ms": 0.078179199, "p99_ms": 0.078863037, "mean_ms": 0.07616768, "bytes": 17801216, "gbps_p50": 234.42394, "pct_of_spec_bw": 26.163387},
-    {"kernel": "int4_naive", "cache": "cold", "p50_ms": 0.067295998, "p90_ms": 0.070099197, "p99_ms": 0.075586562, "mean_ms": 0.06773856, "bytes": 2683904, "gbps_p50": 39.882074, "pct_of_spec_bw": 4.4511244},
-    {"kernel": "int4_tiled", "cache": "cold", "p50_ms": 0.061967999, "p90_ms": 0.063008003, "p99_ms": 0.16818944, "mean_ms": 0.06510656, "bytes": 2683904, "gbps_p50": 43.311129, "pct_of_spec_bw": 4.8338314},
-    {"kernel": "int4_splitk", "cache": "cold", "p50_ms": 0.060368, "p90_ms": 0.061983999, "p99_ms": 0.066165757, "mean_ms": 0.06153792, "bytes": 2683904, "gbps_p50": 44.459051, "pct_of_spec_bw": 4.9619477}
+    {"kernel": "fp32_naive", "cache": "hot", "p50_ms": 0.236592, "p90_ms": 0.2376032, "p99_ms": 0.23969409, "mean_ms": 0.23655232, "bytes": 17801216, "gbps_p50": 75.240143, "pct_of_spec_bw": 8.3973374},
+    {"kernel": "fp32_tiled", "cache": "hot", "p50_ms": 0.054432001, "p90_ms": 0.056451201, "p99_ms": 0.063385601, "mean_ms": 0.0562464, "bytes": 17801216, "gbps_p50": 327.03586, "pct_of_spec_bw": 36.499537},
+    {"kernel": "int4_naive", "cache": "hot", "p50_ms": 0.048223998, "p90_ms": 0.048319999, "p99_ms": 0.049322239, "mean_ms": 0.04823296, "bytes": 2683904, "gbps_p50": 55.654945, "pct_of_spec_bw": 6.2114894},
+    {"kernel": "int4_tiled", "cache": "hot", "p50_ms": 0.054368, "p90_ms": 0.054435201, "p99_ms": 0.05526528, "mean_ms": 0.0542624, "bytes": 2683904, "gbps_p50": 49.365509, "pct_of_spec_bw": 5.5095434},
+    {"kernel": "int4_splitk", "cache": "hot", "p50_ms": 0.04496, "p90_ms": 0.0454752, "p99_ms": 0.048565441, "mean_ms": 0.04499584, "bytes": 2683904, "gbps_p50": 59.695374, "pct_of_spec_bw": 6.6624302},
+    {"kernel": "fp32_naive", "cache": "cold", "p50_ms": 0.2412, "p90_ms": 0.242048, "p99_ms": 0.2426512, "mean_ms": 0.24105504, "bytes": 17801216, "gbps_p50": 73.80272, "pct_of_spec_bw": 8.2369107},
+    {"kernel": "fp32_tiled", "cache": "cold", "p50_ms": 0.071568001, "p90_ms": 0.073283199, "p99_ms": 0.073794883, "mean_ms": 0.0717568, "bytes": 17801216, "gbps_p50": 248.7315, "pct_of_spec_bw": 27.760212},
+    {"kernel": "int4_naive", "cache": "cold", "p50_ms": 0.061439998, "p90_ms": 0.063683201, "p99_ms": 0.066052156, "mean_ms": 0.06180544, "bytes": 2683904, "gbps_p50": 43.683334, "pct_of_spec_bw": 4.8753721},
+    {"kernel": "int4_tiled", "cache": "cold", "p50_ms": 0.056928001, "p90_ms": 0.0577152, "p99_ms": 0.058496318, "mean_ms": 0.0568544, "bytes": 2683904, "gbps_p50": 47.145586, "pct_of_spec_bw": 5.2617842},
+    {"kernel": "int4_splitk", "cache": "cold", "p50_ms": 0.047343999, "p90_ms": 0.048163201, "p99_ms": 0.049193278, "mean_ms": 0.0474496, "bytes": 2683904, "gbps_p50": 56.689423, "pct_of_spec_bw": 6.3269445}
   ]
 }

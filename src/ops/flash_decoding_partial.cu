@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "flash_decoding.h"
 #include <limits>
 #include <cmath>
@@ -70,10 +71,9 @@ __global__ void flash_decoding_partial(const float* d_Q, const float* d_K, const
     }
 }
 
-void run_flash_decoding_partial(const float* d_Q, const float* d_K, const float* d_V, float* d_O_partial, float* d_lse_partial, int D, int S, int chunk_size) {
+void run_flash_decoding_partial(const float* d_Q, const float* d_K, const float* d_V, float* d_O_partial, float* d_lse_partial, int D, int S, int chunk_size, cudaStream_t stream) {
     int block_size = D;
     int grid_size = (S + chunk_size - 1) / chunk_size;
     int shared_mem_bytes = (D + (D / WARP)) * sizeof(float);
-    flash_decoding_partial<<<grid_size, block_size, shared_mem_bytes>>>(d_Q, d_K, d_V, d_O_partial, d_lse_partial, D, S, chunk_size);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(flash_decoding_partial, grid_size, block_size, shared_mem_bytes, stream, d_Q, d_K, d_V, d_O_partial, d_lse_partial, D, S, chunk_size);
 }

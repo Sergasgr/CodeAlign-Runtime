@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "gemm.h"
 #define TILE_SIZE 16
 
@@ -36,9 +37,8 @@ __global__ void gemm_optimized_kernel(const float* A, const float* B, float* C, 
     }
 }
 
-void run_gemm_optimized(const float* A, const float* B, float* C, int K, int in_features, int out_features) {
+void run_gemm_optimized(const float* A, const float* B, float* C, int K, int in_features, int out_features, cudaStream_t stream) {
     dim3 block_size(TILE_SIZE, TILE_SIZE);
     dim3 grid_size((out_features + TILE_SIZE - 1) / TILE_SIZE, (K + TILE_SIZE - 1) / TILE_SIZE);
-    gemm_optimized_kernel<<<grid_size, block_size>>>(A, B, C, K, in_features, out_features);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_optimized_kernel, grid_size, block_size, 0, stream, A, B, C, K, in_features, out_features);
 }

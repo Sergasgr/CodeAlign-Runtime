@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "gemv.h"
 #include <cstdint>
 #define FULL_MASK 0xffffffff
@@ -53,16 +54,14 @@ __global__ void gemv_int4_optimized_kernel(const uint32_t* d_q_mat, const float*
     }
 }
 
-void run_gemv_int4_naive_kernel(const uint32_t* d_q_mat, const float* d_scales, const float* d_vec, float* d_out_q, int rows, int cols) {
+void run_gemv_int4_naive_kernel(const uint32_t* d_q_mat, const float* d_scales, const float* d_vec, float* d_out_q, int rows, int cols, cudaStream_t stream) {
     int block_size = 256;
     int grid_size = (rows + block_size - 1) / block_size;
-    gemv_int4_naive_kernel<<<grid_size, block_size>>>(d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemv_int4_naive_kernel, grid_size, block_size, 0, stream, d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
 }
 
-void run_gemv_int4_optimized_kernel(const uint32_t* d_q_mat, const float* d_scales, const float* d_vec, float* d_out_q, int rows, int cols) {
+void run_gemv_int4_optimized_kernel(const uint32_t* d_q_mat, const float* d_scales, const float* d_vec, float* d_out_q, int rows, int cols, cudaStream_t stream) {
     int block_size = 256;
     int grid_size = (rows * 32 + block_size - 1) / block_size;
-    gemv_int4_optimized_kernel<<<grid_size, block_size>>>(d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemv_int4_optimized_kernel, grid_size, block_size, 0, stream, d_q_mat, d_scales, d_vec, d_out_q, rows, cols);
 }

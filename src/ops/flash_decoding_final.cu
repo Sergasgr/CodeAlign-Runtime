@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "flash_decoding.h"
 #include <limits>
 #include <cmath>
@@ -28,9 +29,8 @@ __global__ void flash_decoding_final(const float* d_O_partial, const float* d_ls
     d_O_final[tid] = final_value;
 }
 
-void run_flash_decoding_final(const float* d_O_partial, const float* d_lse_partial, float* d_O_final, int D, int num_chunks) {
+void run_flash_decoding_final(const float* d_O_partial, const float* d_lse_partial, float* d_O_final, int D, int num_chunks, cudaStream_t stream) {
     int block_size = D;
     int grid_size = 1;
-    flash_decoding_final<<<grid_size, block_size>>>(d_O_partial, d_lse_partial, d_O_final, D, num_chunks);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(flash_decoding_final, grid_size, block_size, 0, stream, d_O_partial, d_lse_partial, d_O_final, D, num_chunks);
 }

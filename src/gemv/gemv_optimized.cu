@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "gemv.h"
 #define FULL_MASK 0xffffffff
 
@@ -28,9 +29,8 @@ __global__ void gemv_optimized_kernel(const float* d_mat, const float* d_vec, fl
     }
 }
 
-void run_gemv_optimized(const float* d_mat, const float* d_vec, float* d_out_opt, int rows, int cols) {
+void run_gemv_optimized(const float* d_mat, const float* d_vec, float* d_out_opt, int rows, int cols, cudaStream_t stream) {
     int block_size = 256;
     int grid_size = (rows * 32 + block_size - 1) / block_size;
-    gemv_optimized_kernel<<<grid_size, block_size>>>(d_mat, d_vec, d_out_opt, rows, cols);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemv_optimized_kernel, grid_size, block_size, 0, stream, d_mat, d_vec, d_out_opt, rows, cols);
 }

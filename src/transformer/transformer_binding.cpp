@@ -1,4 +1,5 @@
 #include <torch/extension.h>
+#include <c10/cuda/CUDAStream.h>
 #include <optional>
 #include <string>
 #include <vector>
@@ -17,6 +18,10 @@ namespace {
     void check_last_cuda_error(const char* where) {
         cudaError_t err = cudaGetLastError();
         TORCH_CHECK(err == cudaSuccess, where, ": CUDA error: ", cudaGetErrorString(err));
+    }
+
+    cudaStream_t current_stream() {
+        return c10::cuda::getCurrentCUDAStream().stream();
     }
 
     class QwenBlock {
@@ -149,8 +154,8 @@ torch::Tensor QwenBlock::forward(torch::Tensor hidden_states) {
                 "num_tokens must be in [1, ", MAX_TOKENS_PER_FORWARD, "], got ", num_tokens, " (chunk longer inputs)");
     TORCH_CHECK(kv_cache.current_seq_len + num_tokens <= kv_cache.max_seq_len,
                 "KV-cache overflow: ", kv_cache.current_seq_len, " + ", num_tokens, " > max_seq_len ", kv_cache.max_seq_len);
-
-    forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers, dims, num_tokens);
+    
+    forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers, dims, num_tokens, current_stream());
     check_last_cuda_error("QwenBlock.forward");
     return hidden_states;
 }
@@ -179,7 +184,7 @@ torch::Tensor fast_argmax(torch::Tensor logits) {
     auto options = torch::TensorOptions().dtype(torch::kInt32).device(logits.device());
     torch::Tensor predicted_tokens = torch::empty({num_tokens}, options);
 
-    run_compute_argmax_kernel(logits.data_ptr<float>(), predicted_tokens.data_ptr<int32_t>(), num_tokens, vocab_size);
+    run_compute_argmax_kernel(logits.data_ptr<float>(), predicted_tokens.data_ptr<int32_t>(), num_tokens, vocab_size, current_stream());
     check_last_cuda_error("fast_argmax");
 
     return predicted_tokens;

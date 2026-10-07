@@ -1,3 +1,4 @@
 #pragma once
+#include <cuda_runtime.h>
 
-void run_append_kv_cache(const float* k_src, const float* v_src, float* k_cache, float* v_cache, int current_seq_len, int max_seq_len, int head_dim, int d, int num_tokens);
+void run_append_kv_cache(const float* k_src, const float* v_src, float* k_cache, float* v_cache, int current_seq_len, int max_seq_len, int head_dim, int d, int num_tokens, cudaStream_t stream = 0);

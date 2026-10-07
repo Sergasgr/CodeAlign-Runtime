@@ -1,0 +1,8 @@
+Time (%),Total Time (ns),Num Calls,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+85.3,459123580,40,11478089.5,11194396.0,5340,24927810,11633604.0,cudaMemcpyAsync
+14.2,76533403,22280,3435.1,3310.0,3130,27850,618.3,cudaLaunchKernel
+0.5,2643422,22280,118.6,120.0,100,6300,54.3,cuKernelGetName
+0.0,176191,40,4404.8,2765.0,1830,60201,9109.9,cudaStreamSynchronize
+0.0,28080,40,702.0,635.0,520,3300,424.7,cudaStreamIsCapturing_v10000
+0.0,10110,1,10110.0,10110.0,10110,10110,0.0,cudaDeviceSynchronize
+0.0,5250,1,5250.0,5250.0,5250,5250,0.0,cuProfilerStart

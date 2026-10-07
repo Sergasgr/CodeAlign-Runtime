@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "kv_cache_ops.h"
 #include <cuda_runtime.h>
 
@@ -15,9 +16,8 @@ __global__ void append_kv_cache_kernel(const float* k_src, const float* v_src, f
     }
 }
 
-void run_append_kv_cache(const float* k_src, const float* v_src,float* k_cache, float* v_cache, int current_seq_len, int max_seq_len, int head_dim, int d, int num_tokens) {
+void run_append_kv_cache(const float* k_src, const float* v_src, float* k_cache, float* v_cache, int current_seq_len, int max_seq_len, int head_dim, int d, int num_tokens, cudaStream_t stream) {
     int threads = 256;
     int blocks = (num_tokens * d + threads - 1) / threads;
-    append_kv_cache_kernel<<<blocks, threads>>>(k_src, v_src, k_cache, v_cache, current_seq_len, max_seq_len, head_dim, d, num_tokens);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(append_kv_cache_kernel, blocks, threads, 0, stream, k_src, v_src, k_cache, v_cache, current_seq_len, max_seq_len, head_dim, d, num_tokens);
 }

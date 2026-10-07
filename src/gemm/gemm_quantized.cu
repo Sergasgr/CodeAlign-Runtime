@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "gemm.h"
 #include <cstdint>
 #define TILE_SIZE 16
@@ -142,30 +143,26 @@ __global__ void gemm_int4_splitk_final_kernel(const float* C_partial, float* C, 
     }
 }
 
-void run_gemm_int4_naive(const float* A, const uint32_t* B_quant, const float* B_scales, float* C, int K, int in_features, int out_features) {
+void run_gemm_int4_naive(const float* A, const uint32_t* B_quant, const float* B_scales, float* C, int K, int in_features, int out_features, cudaStream_t stream) {
     dim3 block_size(16, 16);
     dim3 grid_size((out_features + 15) / 16, (K + 15) / 16);
-    gemm_int4_naive_kernel<<<grid_size, block_size>>>(A, B_quant, B_scales, C, K, in_features, out_features);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_int4_naive_kernel, grid_size, block_size, 0, stream, A, B_quant, B_scales, C, K, in_features, out_features);
 }
 
-void run_gemm_int4_optimized(const float* A, const uint32_t* B_quant, const float* B_scales, float* C, int K, int in_features, int out_features) {
+void run_gemm_int4_optimized(const float* A, const uint32_t* B_quant, const float* B_scales, float* C, int K, int in_features, int out_features, cudaStream_t stream) {
     dim3 block_size(TILE_SIZE, TILE_SIZE);
     dim3 grid_size((out_features + TILE_SIZE - 1) / TILE_SIZE, (K + TILE_SIZE - 1) / TILE_SIZE);
-    gemm_int4_optimized_kernel<<<grid_size, block_size>>>(A, B_quant, B_scales, C, K, in_features, out_features);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_int4_optimized_kernel, grid_size, block_size, 0, stream, A, B_quant, B_scales, C, K, in_features, out_features);
 }
 
-void run_gemm_int4_splitk_partial_kernel(const float* A, const uint32_t* B_quant, const float* B_scales, float* C_partial, int K, int num_splits, int in_features, int out_features) {
+void run_gemm_int4_splitk_partial_kernel(const float* A, const uint32_t* B_quant, const float* B_scales, float* C_partial, int K, int num_splits, int in_features, int out_features, cudaStream_t stream) {
     dim3 block_size(TILE_SIZE, TILE_SIZE);
     dim3 grid_size((out_features + TILE_SIZE - 1) / TILE_SIZE, (K + TILE_SIZE - 1) / TILE_SIZE, num_splits);
-    gemm_int4_splitk_partial_kernel<<<grid_size, block_size>>>(A, B_quant, B_scales, C_partial, K, num_splits, in_features, out_features);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_int4_splitk_partial_kernel, grid_size, block_size, 0, stream, A, B_quant, B_scales, C_partial, K, num_splits, in_features, out_features);
 }
 
-void run_gemm_int4_splitk_final_kernel(const float* C_partial, float* C, int K, int out_features, int num_splits) {
+void run_gemm_int4_splitk_final_kernel(const float* C_partial, float* C, int K, int out_features, int num_splits, cudaStream_t stream) {
     dim3 block_size(TILE_SIZE, TILE_SIZE);
     dim3 grid_size((out_features + TILE_SIZE - 1) / TILE_SIZE, (K + TILE_SIZE - 1) / TILE_SIZE);
-    gemm_int4_splitk_final_kernel<<<grid_size, block_size>>>(C_partial, C, K, out_features, num_splits);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(gemm_int4_splitk_final_kernel, grid_size, block_size, 0, stream, C_partial, C, K, out_features, num_splits);
 }

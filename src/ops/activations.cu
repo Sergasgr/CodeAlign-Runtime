@@ -1,3 +1,4 @@
+#include "../include/codealign_cuda.h"
 #include "../transformer/transformer.h"
 
 __global__ void swiglu_kernel(float* gate, float* up, float* result, int d) {
@@ -9,9 +10,8 @@ __global__ void swiglu_kernel(float* gate, float* up, float* result, int d) {
     }
 }
 
-void run_swiglu_kernel(float* gate, float* up, float* result, int d) {
+void run_swiglu_kernel(float* gate, float* up, float* result, int d, cudaStream_t stream) {
     int block_size = 256; 
     int grid_size = (d + block_size - 1) / block_size;
-    swiglu_kernel<<<grid_size, block_size>>>(gate, up, result, d);
-    cudaDeviceSynchronize();
+    CODEALIGN_KERNEL_LAUNCH(swiglu_kernel, grid_size, block_size, 0, stream, gate, up, result, d);
 }
