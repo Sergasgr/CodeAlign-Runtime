@@ -111,6 +111,55 @@ def bench_e2e(engine: CodeAlignEngine, new_tokens: int) -> dict:
             "ttft_note": "chunked prefill through the decode/verify path (11 tokens per forward), not optimized",
             "tpot": stats, "sample_text": text}
 
+@torch.inference_mode()
+def sectioned_logits(engine: CodeAlignEngine, token: list[int]) -> torch.Tensor:
+    nvtx = torch.cuda.nvtx
+    with nvtx.range("embed"):
+        h = engine.embed(token)
+    with nvtx.range("blocks"):
+        for block in engine.blocks:
+            with nvtx.range("layer"):       
+                block.forward(h)            
+    with nvtx.range("final_norm+lm_head"):
+        return engine.lm_logits(engine.final_norm(h[-1:]))
+
+def profile_step(engine: CodeAlignEngine, token: list[int], sections: bool) -> int:
+    if not sections:
+        return engine.argmax(engine.forward(token, logits="last"))[0]
+    logits = sectioned_logits(engine, token)
+    with torch.cuda.nvtx.range("argmax"):
+        return engine.argmax(logits)[0]
+
+def run_profile_decode(engine: CodeAlignEngine, context: int, steps: int, warmup: int, sections: bool) -> None:
+    token = [0]
+
+    if sections:
+        engine.set_seq_len(context - 1)
+        ref = engine.forward(token, logits="last")
+        engine.set_seq_len(context - 1)
+        got = sectioned_logits(engine, token)
+        if not torch.equal(ref, got):
+            max_diff = (ref - got).abs().max().item()
+            raise RuntimeError(f"sectioned step differs from engine.forward (max abs diff {max_diff:.3e}); "
+                               "update _sectioned_logits to match scripts/engine.py")
+        print("  sectioned step == engine.forward (bitwise)")
+
+    for _ in range(warmup):
+        engine.set_seq_len(context - 1)
+        profile_step(engine, token, sections)
+    torch.cuda.synchronize()
+
+    torch.cuda.profiler.start()
+    for _ in range(steps):
+        engine.set_seq_len(context - 1)          
+        with torch.cuda.nvtx.range("decode_step"):
+            profile_step(engine, token, sections)  
+    torch.cuda.synchronize()
+    torch.cuda.profiler.stop()
+    engine.reset()
+    print(f"Profiling complete: {steps} decode steps at S={context} captured "
+          f"({'with' if sections else 'without'} section ranges).")
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--contexts", type=int, nargs="+", default=CONTEXT_LENGTHS)
@@ -118,14 +167,24 @@ def main():
     parser.add_argument("--warmup", type=int, default=WARMUP_ITERATIONS)
     parser.add_argument("--e2e-tokens", type=int, default=128)
     parser.add_argument("--skip-e2e", action="store_true")
+    parser.add_argument("--profile", action="store_true", help="profile decode steps (Nsight Systems / Compute) instead of benchmarking; writes no JSON")
+    parser.add_argument("--profile-context", type=int, default=512, help="KV-cache length S of the profiled steps")
+    parser.add_argument("--profile-steps", type=int, default=20, help="decode steps inside cudaProfilerStart/Stop")
+    parser.add_argument("--profile-no-sections", action="store_true", help="one NVTX range per step only (no embed/layer/lm_head/argmax ranges)")
     args = parser.parse_args()
     if max(args.contexts) > MAX_SEQ_LEN:
         parser.error(f"contexts must be <= MAX_SEQ_LEN ({MAX_SEQ_LEN})")
+    if not 1 <= args.profile_context <= MAX_SEQ_LEN:
+        parser.error(f"--profile-context must be in [1, {MAX_SEQ_LEN}]")
 
     print(f"Loading {MODEL} and quantizing to INT4 (lm_head INT4: {QUANTIZE_LM_HEAD})...")
     engine = CodeAlignEngine.from_pretrained(MODEL, max_seq_len=MAX_SEQ_LEN, quantize_lm_head=QUANTIZE_LM_HEAD)
     torch.cuda.synchronize()
-    
+
+    if args.profile:
+        run_profile_decode(engine, args.profile_context, args.profile_steps, args.warmup, sections=not args.profile_no_sections)
+        return
+
     cuda_buffers = engine.cuda_buffer_bytes()
     memory = {"torch_tensors_mb": torch.cuda.memory_allocated() / 2**20, "cuda_buffers_mb": cuda_buffers / 2**20,
               "load_peak_torch_mb": torch.cuda.max_memory_allocated() / 2**20}

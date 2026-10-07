@@ -131,4 +131,4 @@ models/
 .DS_Store
 Thumbs.db
 
-# results/*.json IS committed: every number in the README comes from those files
+# results/*.json IS committed: every number in the README comes from those filesprofiles/

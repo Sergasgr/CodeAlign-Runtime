@@ -10,7 +10,7 @@ Hand-written CUDA kernels serve Qwen2.5-Coder-0.5B, a code completion model, at 
 
 ## Results at a Glance
 
-NVIDIA RTX 5070 Ti (896 GB/s), Qwen2.5-Coder-0.5B, batch=1, greedy decoding. All numbers come from `results/*.json`.
+NVIDIA RTX 5070 Ti (896 GB/s), Qwen2.5-Coder-0.5B, batch=1, greedy decoding. All numbers come from `results/*.json`; profiling figures come from the Nsight summaries in `results/profiles/`.
 
 | System | TPOT p50 | tok/s | % of bandwidth ceiling | Peak VRAM | HumanEval pass@1 |
 |--------|---:|---:|---:|---:|---:|
@@ -26,10 +26,11 @@ What the data shows:
 
 1. **The engine is correct wherever it is tested.** Every kernel matches a CPU/PyTorch reference on random data. The full INT4 engine matches Hugging Face running the same quantized weights within its own fp32 noise (tested against float64), and it generates coherent code. Speculative decoding produces exactly the greedy output on every prompt.
 2. **INT4 is not free in quality.** Plain round-to-nearest INT4 (g=128, lm_head included) drops HumanEval pass@1 from **24.4% to 14.0%**, i.e. from 40 to 23 of 164 problems (−43% relative). That is the trade-off this project set out to measure, and it makes calibrated quantization a v2.0 priority.
-3. **The hypothesis holds for the dense fp32 kernel.** The optimized fp32 GEMV reaches **58% of DRAM bandwidth** (521 GB/s). The INT4 GEMV does not yet turn its 7.5× byte reduction into speed: it is only **1.09× faster than fp32**, and it takes the same time with L2 hot or cold, which rules out DRAM as its bottleneck. The likely cause is how it reads the activation vector.
-4. **v1.0 is correct but slow.** The engine is 3.8× slower than PyTorch eager and 42× slower than llama.cpp Q4_0. The measurements point to two causes:
-   - An estimated **70% of each decoder block** is the Flash-Decoding loop, which walks every 256-token chunk sequentially, head by head.
-   - Every one of the 46 kernel launches per block is followed by a `cudaDeviceSynchronize()`.
+3. **The hypothesis holds for the dense fp32 kernel.** The optimized fp32 GEMV reaches **58% of DRAM bandwidth** (521 GB/s). The INT4 GEMV does not yet turn its 7.5× byte reduction into speed: it is only **1.09× faster than fp32**, and it takes the same time with L2 hot or cold, which rules out DRAM as its bottleneck. Nsight Compute confirms it: the kernel saturates L1 (97–100% busy) while DRAM sits at 9–14%, because 84% of the sectors its loads fetch are wasted on the activation-vector reads.
+4. **v1.0 is correct but slow.** The engine is 3.8× slower than PyTorch eager and 42× slower than llama.cpp Q4_0. Profiling one decode step at S=512 shows why:
+   - **72.5% of the step is attention** (92.6% of GPU kernel time). Each per-head launch runs 2 blocks of 64 threads on a 70-SM GPU, and each block walks its 256 cached tokens one at a time.
+   - **Each KV head is read 7 times,** once per query head of its group. The first read comes from DRAM and takes 1.9× as long as the next six, which hit L2.
+   - **1,114 kernel launches per token, 1,106 of them followed by a `cudaDeviceSynchronize()`.** The GPU is idle 22% of the step under the profiler.
 5. **Even llama.cpp is far from its ceiling at 0.5B.** Q4_0 moves 2.85× fewer bytes than F16 but is only 1.66× faster, at 29% of its bandwidth ceiling. For a model this small, fixed per-token costs are a large share of latency; bandwidth is only part of the story.
 6. **Speculative decoding only pays off if a multi-token forward is cheap.** Prompt Lookup Decoding is lossless, but even with 92% draft acceptance it gives only **1.12×**, and **1.00× overall** across the four prompts. In this engine a 5.7-token verify forward costs 4.75× a single-token forward, because attention is processed token by token.
 
@@ -91,7 +92,7 @@ CodeAlign-Runtime/
 │   ├── baseline.py               # Level 0: PyTorch eager TTFT/TPOT/VRAM
 │   ├── flash_decoding_baseline.py# Level 4: validation + benchmark vs PyTorch attention
 │   ├── engine.py                 # Level 5: CodeAlignEngine (24 QwenBlocks + embedding/norm/lm_head glue)
-│   ├── transformer_inference.py  # Level 5: block / full-model / end-to-end decode benchmark
+│   ├── transformer_inference.py  # Level 5: block / full-model / end-to-end decode benchmark (--profile: Nsight)
 │   ├── generate_speculative.py   # Level 6: Prompt Lookup Decoding + lossless check
 │   ├── quantization.py           # INT4 quantization + QuantizedLinearINT4 (drop-in nn.Linear)
 │   ├── evaluate_quality.py       # HumanEval pass@1, bf16 vs INT4 (bigcode-evaluation-harness)
@@ -102,7 +103,7 @@ CodeAlign-Runtime/
 │   ├── inference_config.py       # model id, dimensions, benchmark constants
 │   └── baseline_config.py        # Level 0 prompt and iteration counts
 ├── tests/                        # pytest: CPU tests + GPU tests (kernels, engine vs Hugging Face)
-├── results/                      # JSON output of every benchmark (committed)
+├── results/                      # JSON output of every benchmark + Nsight summaries in profiles/ (committed)
 ├── build.sh                      # builds the CMake harness + the 3 PyTorch extensions
 ├── CMakeLists.txt, *_setup.py    # native build / PyTorch extension builds
 ├── pyproject.toml, uv.lock       # Python dependencies (uv)
@@ -178,7 +179,19 @@ What this shows:
 
 - **Coalescing + vectorization work.** Going from Level 1 to Level 2 is 2.9× from DRAM and 6.4× from L2. The optimized fp32 kernel reaches 58% of the spec bandwidth, and 1.2 TB/s when the matrix is L2-resident.
 - **The INT4 kernel is not limited by memory.** It moves 2.3 MB instead of 17.5 MB, yet it is only **1.09× faster** than fp32 from DRAM (30.8 vs 33.5 µs). It takes the same time with L2 hot or cold (31.3 vs 30.8 µs), which rules out DRAM as the bottleneck.
-- **The likely culprit is the activation-vector access pattern.** The packed weights are read coalesced (lane *L* loads the *L*-th `uint4` of the row), but lane *L* then reads `vec[32·L … 32·L+31]` one float at a time. Each of those load instructions touches a different cache line per lane. On top of that, an 896-wide row has only 28 `uint4`s, so 4 of the 32 lanes sit idle. Fixing this is item 3 of [v1.1](#v11--performance-pass).
+- **Nsight Compute pins it on the activation-vector access pattern.** Each kernel was profiled alone, at locked clocks with caches flushed (`results/profiles/v1.0_gemv_*.txt`):
+
+| Nsight Compute | fp32 optimized, 4864×896 | INT4 optimized, 4864×896 | INT4 optimized, lm_head 151,936×896 |
+|---|---:|---:|---:|
+| Kernel duration | 27.3 µs | 31.0 µs | 867 µs |
+| DRAM throughput | 82.8% | 9.1% | 13.9% |
+| L1/TEX throughput | 15.1% | 97.2% | 99.7% |
+| Useful bytes per 32-byte sector (global loads) | not flagged | 4.5 | 4.5 |
+| Excess sectors from uncoalesced accesses | not flagged | 84% | 84% |
+| Top warp stall | waiting on memory (96%) | LG queue full (42%) | LG queue full (47%), MIO queue full (37%) |
+
+- **fp32 is DRAM-bound, as a GEMV should be.** Alone, the kernel moves the 17.5 MB matrix in 27.3 µs (640 GB/s, 71% of 896 GB/s). The 58% in the table above also includes the wrapper's launch and synchronization.
+- **INT4 is L1-bound.** The packed weights are read coalesced (lane *L* loads the *L*-th `uint4` of the row), but lane *L* then reads `vec[32·L … 32·L+31]` one float at a time. Each load instruction touches a different 32-byte sector per lane and uses 4.5 of its 32 bytes, so L1 saturates while DRAM idles. The 72 MB lm_head behaves the same: 103 GB/s (11.5% of 896 GB/s) inside the engine. On top of that, an 896-wide row has only 28 `uint4`s, so 4 of the 32 lanes sit idle. Fixing this is item 3 of [v1.1](#v11--performance-pass).
 
 **GEMM kernels** (16 tokens × 4864×896) are used for multi-token forwards: speculative verification and chunked prefill. Every one of them validates on three shapes, including 11 and 3 tokens.
 
@@ -218,6 +231,7 @@ During decode, one query attends to a growing KV-cache, so there is nothing to p
 
 - **Short contexts are pure overhead.** Up to 65k tokens the custom kernel stays at ~0.15–0.16 ms: two launches, two device synchronizations, and a block that walks its 256 tokens one at a time with two `__syncthreads()` per token.
 - **At 262k tokens it reaches 49% of the bandwidth ceiling,** within 12% of PyTorch/cuBLAS. It never overtakes PyTorch, and at 131k it drops to 0.45× before recovering.
+- **Inside the engine it is latency-bound.** Profiled at S=512, a launch runs 2 blocks of 64 threads; Nsight Compute reports 4% achieved occupancy and 4.7% of DRAM bandwidth, with warps mostly waiting on loads (67% of stalls). Its duration follows the tokens each block walks, not S: 60 µs for 128 tokens, 120 µs for 256, i.e. ~0.47 µs per token.
 
 ---
 
@@ -274,11 +288,20 @@ Ceilings: one block reads 7.93 MB (9–11 µs); the full model reads 263 MB (0.3
 
 **Memory:** 598 MB resident (511 MB of tensors, including the bf16 embedding table, plus 88 MB of C++ buffers), and a 599 MB peak during decode. That is 40% less than PyTorch's 997 MB peak. The one-off INT4 quantization at load peaks at 2.27 GB; a pre-quantized checkpoint (v2.0, track B) removes it.
 
-**Where the time goes:**
+**Where the time goes:** Nsight Systems over 20 decode steps per context (`transformer_inference.py --profile`, summaries in `results/profiles/v1.0_decode_*`). The profiler adds overhead between kernels, so this table gives shares; the latencies above come from the benchmark, which runs without it.
 
-- **Attention (~70% of the block, estimated):** block time is flat from S=512 to S=2048 because chunks run in parallel, but each block walks its 256 tokens sequentially. At S=128 the loop is 128 tokens long, and the rest of the block is identical. The difference (0.73 ms for 128 tokens × 14 heads) puts the loop at ~0.41 µs per (head, cached token), i.e. about **1.46 ms of the 2.09 ms block**.
-- **Everything else (~0.63 ms):** the remaining 18 launches (projections, norms, RoPE, KV append, residuals). Like the 28 attention launches, each is followed by `cudaDeviceSynchronize()`.
-- **Full model:** 24 blocks account for ~50 ms of the 56 ms per token. The lm_head, final norm, embedding and argmax add the rest.
+| Share of one decode step (GPU span) | S=128 | S=512 |
+|---|---:|---:|
+| Attention (Flash-Decoding partial + final) | 52.6% | 72.5% |
+| INT4 GEMVs (169 launches, lm_head 0.70 ms) | 6.8% | 4.8% |
+| Other kernels (RMSNorm, RoPE, bias, residual, SwiGLU, KV append, argmax, PyTorch glue) | 1.5% | 1.0% |
+| GPU idle between kernels | 39.1% | 21.7% |
+| Step span under the profiler | 44.6 ms | 63.6 ms |
+
+- **Attention dominates, and it is latency-bound.** Each layer launches 2 kernels per query head. At S=512 every partial launch is 2 blocks walking 256 tokens each (120 µs), so block time stops growing after S=512: more chunks run in parallel, but each block's sequential walk stays at 256 tokens. The earlier estimate from timings (~70% of the block) holds: 72.5% of the step.
+- **Every KV head is read 7 times.** Query heads 0 and 7, the first of each GQA group, take 226 µs instead of 120 µs at S=512 (113 vs 60 µs at S=128). They fetch their KV head from DRAM, and the other six heads of the group find it in L2. This also explains why the full model costs more than 24× the isolated block benchmark (56.1 vs 50.1 ms). That benchmark reruns layer 0, whose KV-cache stays in L2. Adding the two cold reads per layer (+0.21 ms) gives 24 × 2.30 ≈ 55.3 ms.
+- **Launch and synchronization gaps.** A step launches 1,114 kernels, and every C++ wrapper ends with `cudaDeviceSynchronize()` (1,106 per step). Under the profiler the GPU is idle 22% of the step at S=512 (8 µs per kernel boundary). Without it, the isolated block benchmark leaves ~0.27 ms per layer outside its kernels, ~6 µs per boundary, or about 6–7 ms per token.
+- **The rest is small.** INT4 GEMVs take 3.0 ms per step (lm_head 0.70 ms). RoPE takes 0.28 ms (two 5.9 µs launches per layer, with double-precision sin/cos), and the argmax over 151,936 logits 0.12 ms. Everything outside the 24 blocks (embedding, final RMSNorm, lm_head, argmax) adds 1.4 ms per step, 2% of it.
 - **TTFT is slow** because prefill goes through the 11-token decode path: every prompt token runs its own per-head attention launches.
 
 These measurements define [v1.1](#v11--performance-pass).
@@ -358,6 +381,7 @@ The absolute value depends on the harness and prompt format (bigcode's HumanEval
 5. **Fixed context:** decode latency is measured at a fixed KV-cache length, not averaged over a growing context.
 6. **Correctness before speed:** if validation fails, no timings are reported. The C++ harnesses and the Flash-Decoding script write only the failed checks and exit non-zero.
 7. **Traceable results:** every run writes `results/<name>.json` with the GPU, driver, CUDA/torch/transformers versions and git commit. [`report.py`](scripts/report.py) turns them into the tables above.
+8. **Profiles explain, benchmarks measure.** Nsight Systems (decode steps at a fixed context, with NVTX ranges per step and per section) and Nsight Compute (single kernels inside the engine, at locked clocks with caches flushed) provide shares and per-kernel diagnostics. Their text/CSV summaries are committed in `results/profiles/`. Latencies reported as results come from the benchmarks, which run without a profiler.
 
 ---
 
@@ -378,14 +402,14 @@ The goal is a before/after comparison with the same harness, tests and scripts; 
 
 | # | Change | Evidence in v1.0 | Judged by |
 |---|--------|------------------|-----------|
-| 0 | **Profile first:** an Nsight Systems timeline of one decode step and Nsight Compute reports for the INT4 GEMV and the Flash-Decoding kernel, committed as the v1.0 profile | Attention share and INT4 diagnosis are estimates from timings | Profiles before and after each item |
-| 1 | **Batched GQA Flash-Decoding (C++/CUDA):** one launch per layer over (KV chunks × KV heads). Each block loads a K/V chunk once and serves the 7 query heads that share it. Tokens inside a chunk are processed in parallel, not with a sequential loop, and the chunk size adapts to short contexts. The multi-token (verify/prefill) path uses a single launch for all tokens, with per-token causal lengths. | Attention ≈ 70% of block time; block flat from S=512 because each block walks 256 tokens sequentially; a 5.7-token verify costs 4.75× a single token | Block and model TPOT at S = 128…2048; Level 4 table; PLD tokens/forward vs speedup |
-| 2 | **No device synchronization per launch (C++):** stream-ordered launches, with errors checked once per forward | 46 launches per block per token, each followed by `cudaDeviceSynchronize()` | Block time at S=128; model TPOT |
-| 3 | **Coalesced INT4 GEMV (CUDA):** stage the activation vector in shared memory once per block, so each lane reads its 32 activations without scattered global loads. Map lanes so that no lane idles on 896-wide rows (e.g. several rows per warp). | INT4 only 1.09× faster than fp32 with 7.5× fewer bytes; hot ≈ cold (not DRAM-bound) | Level 3 table (L2-cold GB/s); Nsight Compute memory metrics |
+| 0 | ✅ **Profile first:** Nsight Systems traces of 20 decode steps at S=128 and S=512, and Nsight Compute reports for the INT4 GEMV (4864×896 and lm_head), the fp32 GEMV and Flash-Decoding, in `results/profiles/` | Attention share and INT4 diagnosis were estimates from timings; both are now measured | Profiles before and after each item |
+| 1 | **Batched GQA Flash-Decoding (C++/CUDA):** one launch per layer over (KV chunks × KV heads). Each block loads a K/V chunk once and serves the 7 query heads that share it. Tokens inside a chunk are processed in parallel, not with a sequential loop, and the chunk size adapts to short contexts. The multi-token (verify/prefill) path uses a single launch for all tokens, with per-token causal lengths. | Attention = 72.5% of the decode step (S=512); 2 blocks per launch, 4% occupancy; each KV head read 7 times (first read from DRAM: 226 vs 120 µs); a 5.7-token verify costs 4.75× a single token | Block and model TPOT at S = 128…2048; Level 4 table; PLD tokens/forward vs speedup |
+| 2 | **No device synchronization per launch (C++):** stream-ordered launches, with errors checked once per forward | 1,114 launches and 1,106 `cudaDeviceSynchronize()` calls per token; GPU idle 22% of the step under the profiler, ~6 µs per kernel boundary without it | Block time at S=128; model TPOT |
+| 3 | **Coalesced INT4 GEMV (CUDA):** stage the activation vector in shared memory once per block, so each lane reads its 32 activations without scattered global loads. Map lanes so that no lane idles on 896-wide rows (e.g. several rows per warp). | INT4 only 1.09× faster than fp32 with 7.5× fewer bytes; L1-bound (L1 97–100% busy, DRAM 9–14%, 84% of fetched sectors wasted) | Level 3 table (L2-cold GB/s); Nsight Compute memory metrics |
 | 4 | **Before/after reporting:** `report.py --baseline v1.0.0` renders v1.0 and v1.1 side by side | — | README tables |
 | 5 | **Quality controls (Python):** (a) the same HumanEval run with the dequantized weights in plain `nn.Linear`, which separates the kernels from the quantization; (b) lm_head kept in bf16 (`--keep-lm-head`), saved under its own result name | INT4 pass@1 14.0% vs 24.4% | pass@1 of each run; (b) also reports its bytes: a bf16 lm_head is 272 MB vs 72 MB in INT4, which moves the weights-only ceiling from 0.29 to 0.52 ms/token |
 
-**Target:** a decode TPOT below PyTorch eager (14.6 ms) at every measured context, i.e. at least 3.8× faster than v1.0 at S ≥ 512, with the same tests passing and the same INT4 checkpoint (identical HumanEval generations).
+**Target:** a decode TPOT below PyTorch eager (14.6 ms) at every measured context, i.e. at least 3.8× faster than v1.0 at S ≥ 512, with the same tests passing. HumanEval pass@1 is re-measured on the new kernels: the INT4 checkpoint is the same, but the fp32 summation order changes, so a few generations may differ.
 
 ### v2.0 — Triton, a Python-free runtime, and faster prefill
 
@@ -426,7 +450,7 @@ Three tracks. Each one mixes Python and C++ and uses the same validation and ben
 | Memory bandwidth (spec) | 896 GB/s |
 | L2 cache | 48 MB |
 | Driver / CUDA | 595.91.07 / CUDA 13.1 toolkit, PyTorch 2.13.0+cu130 |
-| Software | transformers 5.15.1, bigcode-evaluation-harness `8fc5bae`, llama.cpp `0253fb21f` |
+| Software | transformers 5.15.1, bigcode-evaluation-harness `8fc5bae`, llama.cpp `0253fb21f`, Nsight Systems 2025.5.2, Nsight Compute 2025.4.1 |
 
 ---
 
@@ -479,6 +503,28 @@ uv run python -m scripts.evaluate_quality --precision int4
 LLAMA_CPP_DIR=/path/to/llama.cpp uv run --with gguf --with sentencepiece python -m scripts.llama_cpp_benchmark
 uv run python -m scripts.report                         # markdown tables from results/*.json
 ```
+
+### Profiling
+
+`transformer_inference.py --profile` runs decode steps at one fixed context inside `cudaProfilerStart/Stop`, with NVTX ranges per step and per section. It writes no results JSON.
+
+```bash
+mkdir -p profiles results/profiles
+# Nsight Systems: timeline + per-kernel / NVTX / API summaries
+uv run nsys profile --trace=cuda,nvtx --sample=none --cpuctxsw=none \
+    --capture-range=cudaProfilerApi --capture-range-end=stop --force-overwrite=true \
+    -o profiles/v1.0_decode_s512 python -m scripts.transformer_inference --profile --profile-context 512
+nsys stats --force-export=true --format csv \
+    --report cuda_gpu_kern_sum,cuda_api_sum,nvtx_sum,nvtx_gpu_proj_sum,cuda_gpu_trace \
+    --output results/profiles/v1.0_decode_s512 profiles/v1.0_decode_s512.nsys-rep
+# Nsight Compute: one kernel inside the engine (here the lm_head GEMV: launch 169 of each step)
+uv run ncu --profile-from-start off --set full -f -k regex:gemv_int4_optimized_kernel \
+    --launch-skip 168 --launch-count 1 -o profiles/v1.0_gemv_lmhead \
+    python -m scripts.transformer_inference --profile --profile-context 512 --profile-steps 2
+ncu --import profiles/v1.0_gemv_lmhead.ncu-rep --page details > results/profiles/v1.0_gemv_lmhead.txt
+```
+
+Nsight Compute needs access to the GPU performance counters (`ERR_NVGPUCTRPERM` otherwise): set the driver option `NVreg_RestrictProfilingToAdminUsers=0` or run it as root.
 
 `HF_TOKEN` is optional: the model and HumanEval are public. If you need one, copy `.env.example` to `.env`; it is passed to Docker with `--env-file .env`.
 
