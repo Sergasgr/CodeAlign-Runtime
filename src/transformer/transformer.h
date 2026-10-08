@@ -5,7 +5,7 @@
 constexpr int MAX_DRAFT_TOKENS = 10; // Max tokens a single forward() can process: 1 current token + up to 10 draft tokens (Level 6).
 constexpr int MAX_TOKENS_PER_FORWARD = MAX_DRAFT_TOKENS + 1; // Prefill longer than this is done in chunks of this size through the same path.
 constexpr int NUM_SPLITS = 4; // Number of K-splits used by the INT4 Split-K GEMM for multi-token forwards.
-constexpr int FLASH_CHUNK_SIZE = 256; // KV-cache chunk processed by one Flash-Decoding partial block.
+constexpr int MAX_ATTN_CHUNKS = 32; // Max KV chunks per (token, head) in the GQA attention: sizes its scratch (memory.cpp).
 
 // Architecture dimensions of one decoder block (Qwen2: GQA, bias on q/k/v, SwiGLU MLP).
 struct ModelDims {
@@ -53,8 +53,8 @@ struct LayerBuffers {
     float* k_result;         // [MAX_TOKENS, kv_dim]
     float* v_result;         // [MAX_TOKENS, kv_dim]
     float* attn_result;      // [MAX_TOKENS, q_dim]
-    float* partial_O;        // scratch: Flash-Decoding partials / Split-K partials
-    float* partial_lse;      // [max_chunks]
+    float* partial_O;        // scratch: GQA attention partials [MAX_TOKENS, num_heads, MAX_ATTN_CHUNKS, head_dim] / Split-K partials
+    float* partial_lse;      // [MAX_TOKENS, num_heads, MAX_ATTN_CHUNKS]
     float* o_result;         // [MAX_TOKENS, hidden]
     float* mlp_norm_result;  // [MAX_TOKENS, hidden]
     float* gate_result;      // [MAX_TOKENS, intermediate]

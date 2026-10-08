@@ -11,8 +11,7 @@ setup(
             sources=[
                 'benchmarks/gemv_binding.cpp',
                 'src/gemv/gemv_quantized.cu',
-                'src/ops/flash_decoding_partial.cu',
-                'src/ops/flash_decoding_final.cu'
+                'src/ops/gqa_attention.cu'
             ],
             extra_compile_args={'cxx': ['-O3'], 'nvcc': ['-O3', '-use_fast_math']}
         )

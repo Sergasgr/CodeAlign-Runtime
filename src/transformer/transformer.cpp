@@ -1,7 +1,7 @@
 #include "transformer.h"
 #include "../gemv/gemv.h"
 #include "../gemm/gemm.h"
-#include "../ops/flash_decoding.h"
+#include "../ops/gqa_attention.h"
 #include "../ops/residual_operations.h"
 #include "../ops/kv_cache_ops.h"
 #include <cmath>
@@ -19,13 +19,11 @@ void run_quantized_linear(const QuantizedLinear& proj, float* input, float* outp
     }
 }
 
-void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache,
-                               LayerBuffers& buffers, const ModelDims& dims, int num_tokens, cudaStream_t stream) {
+void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers, const ModelDims& dims, int num_tokens, cudaStream_t stream) {
     const int D = dims.hidden;
     const int q_dim = dims.q_dim();
     const int kv_dim = dims.kv_dim();
     const int head_dim = dims.head_dim;
-    const int group = dims.group_size();
 
     // ATTENTION
     run_RMSNorm_kernel(hidden_states, weights.attn_norm_weight, buffers.norm_result, D, num_tokens, stream);
@@ -37,33 +35,23 @@ void forward_transformer_block(float* hidden_states, const TransformerBlockWeigh
     run_RoPE_kernel(buffers.q_result, kv_cache.current_seq_len, q_dim, head_dim, num_tokens, stream);
     run_RoPE_kernel(buffers.k_result, kv_cache.current_seq_len, kv_dim, head_dim, num_tokens, stream);
 
-    run_append_kv_cache(buffers.k_result, buffers.v_result, kv_cache.k_cache, kv_cache.v_cache, kv_cache.current_seq_len,
-                        kv_cache.max_seq_len, head_dim, kv_dim, num_tokens, stream);
+    run_append_kv_cache(buffers.k_result, buffers.v_result, kv_cache.k_cache, kv_cache.v_cache, kv_cache.current_seq_len, kv_cache.max_seq_len, head_dim, kv_dim, num_tokens, stream);
 
-    for (int t = 0; t < num_tokens; t++) {
-        int S = kv_cache.current_seq_len + t + 1;
-        int num_chunks = (S + FLASH_CHUNK_SIZE - 1) / FLASH_CHUNK_SIZE;
-
-        for (int h = 0; h < dims.num_heads; h++) {
-            int kv_head = h / group;  
-            int q_offset = t * q_dim + h * head_dim;
-            int kv_offset = kv_head * kv_cache.max_seq_len * head_dim;
-
-            run_flash_decoding_partial(
-                buffers.q_result + q_offset,
-                kv_cache.k_cache + kv_offset,
-                kv_cache.v_cache + kv_offset,
-                buffers.partial_O, buffers.partial_lse,
-                head_dim, S, FLASH_CHUNK_SIZE, stream
-            );
-
-            run_flash_decoding_final(
-                buffers.partial_O, buffers.partial_lse,
-                buffers.attn_result + q_offset,
-                head_dim, num_chunks, stream
-            );
-        }
-    }
+    GqaAttentionParams attn{};
+    attn.q = buffers.q_result;
+    attn.k_cache = kv_cache.k_cache;
+    attn.v_cache = kv_cache.v_cache;
+    attn.out = buffers.attn_result;
+    attn.partial_o = buffers.partial_O;
+    attn.partial_lse = buffers.partial_lse;
+    attn.num_tokens = num_tokens;
+    attn.past_len = kv_cache.current_seq_len;
+    attn.num_heads = dims.num_heads;
+    attn.num_kv_heads = dims.num_kv_heads;
+    attn.head_dim = head_dim;
+    attn.max_seq_len = kv_cache.max_seq_len;
+    attn.max_chunks = MAX_ATTN_CHUNKS;
+    run_gqa_attention(attn, stream);
 
     run_quantized_linear(weights.o_proj, buffers.attn_result, buffers.o_result, buffers.partial_O, num_tokens, stream);
 

@@ -119,13 +119,13 @@ class CodeAlignEngine:
             block.set_seq_len(seq_len)
 
     def cuda_buffer_bytes(self) -> int:
-        num_splits, flash_chunk, fp32 = 4, 256, 4
+        num_splits, max_attn_chunks, fp32 = int(cuda_engine.NUM_SPLITS), int(cuda_engine.MAX_ATTN_CHUNKS), 4
         d, t = self.dims, self.max_tokens_per_forward
         kv_cache = 2 * d.kv_dim * self.max_seq_len
         activations = t * (4 * d.hidden + 2 * d.q_dim + 2 * d.kv_dim + 3 * d.intermediate)
-        max_chunks = -(-self.max_seq_len // flash_chunk)
-        scratch = max(max_chunks * d.head_dim, num_splits * t * max(d.hidden, d.intermediate, d.q_dim, d.kv_dim))
-        return len(self.blocks) * (kv_cache + activations + scratch + max_chunks) * fp32
+        attn_rows = t * d.num_heads * max_attn_chunks
+        scratch = max(attn_rows * d.head_dim, num_splits * t * max(d.hidden, d.intermediate, d.q_dim, d.kv_dim))
+        return len(self.blocks) * (kv_cache + activations + scratch + attn_rows) * fp32
 
     def embed(self, token_ids: Sequence[int] | torch.Tensor) -> torch.Tensor:
         ids = torch.as_tensor(token_ids, dtype=torch.long, device=self.device).view(-1)

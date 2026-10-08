@@ -23,7 +23,7 @@ void init_kv_cache(LayerKVCache& cache, int max_seq_len, const ModelDims& dims) 
     cache.v_cache = alloc_floats(elems);
 }
 
-void init_buffers(LayerBuffers& buffers, const ModelDims& dims, int max_seq_len) {
+void init_buffers(LayerBuffers& buffers, const ModelDims& dims, int /*max_seq_len*/) {
     const size_t max_tokens = MAX_TOKENS_PER_FORWARD;
     const size_t hidden = dims.hidden, inter = dims.intermediate, q_dim = dims.q_dim(), kv_dim = dims.kv_dim();
 
@@ -40,12 +40,11 @@ void init_buffers(LayerBuffers& buffers, const ModelDims& dims, int max_seq_len)
     buffers.up_result     = alloc_floats(max_tokens * inter);
     buffers.swiglu_result = alloc_floats(max_tokens * inter);
 
-    const size_t max_chunks = (max_seq_len + FLASH_CHUNK_SIZE - 1) / FLASH_CHUNK_SIZE;
+    const size_t attn_rows = max_tokens * dims.num_heads * MAX_ATTN_CHUNKS;
     const size_t widest_out = std::max({hidden, inter, q_dim, kv_dim});
-    const size_t flash_elems = max_chunks * dims.head_dim;
     const size_t splitk_elems = static_cast<size_t>(NUM_SPLITS) * max_tokens * widest_out;
-    buffers.partial_O   = alloc_floats(std::max(flash_elems, splitk_elems));
-    buffers.partial_lse = alloc_floats(max_chunks);
+    buffers.partial_O   = alloc_floats(std::max(attn_rows * dims.head_dim, splitk_elems));
+    buffers.partial_lse = alloc_floats(attn_rows);
 }
 
 void free_kv_cache(LayerKVCache& cache) {

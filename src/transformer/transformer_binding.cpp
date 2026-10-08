@@ -7,6 +7,7 @@
 #include "cuda_check.h"
 #include "../speculative/speculative.h"
 #include "../ops/logits_ops.h"
+#include "../ops/gqa_attention.h"
 #include "transformer.h"
 
 namespace {
@@ -65,7 +66,9 @@ QwenBlock::QwenBlock(int hidden, int intermediate, int num_heads, int num_kv_hea
     TORCH_CHECK(hidden > 0 && hidden <= 1024, "hidden must be in (0, 1024]: RMSNorm runs as a single 1024-thread block");
     TORCH_CHECK(hidden % 128 == 0 && intermediate % 128 == 0, "hidden and intermediate must be multiples of the INT4 group size (128)");
     TORCH_CHECK(num_heads > 0 && num_kv_heads > 0 && num_heads % num_kv_heads == 0, "num_heads must be a multiple of num_kv_heads");
-    TORCH_CHECK(head_dim % 32 == 0 && head_dim <= 1024, "head_dim must be a multiple of 32 (warp size) and <= 1024 (one thread per dim)");
+    TORCH_CHECK(num_heads / num_kv_heads <= GQA_MAX_GROUP, "num_heads / num_kv_heads must be <= ", GQA_MAX_GROUP,
+                " (query heads per KV head held in registers by the GQA attention)");
+    TORCH_CHECK(head_dim == 64 || head_dim == 128, "head_dim must be 64 or 128 (GQA attention), got ", head_dim);
     TORCH_CHECK((num_heads * head_dim) % 128 == 0, "num_heads * head_dim must be a multiple of 128 (o_proj input)");
     TORCH_CHECK(max_seq_len > 0, "max_seq_len must be positive");
     dims = ModelDims{hidden, intermediate, num_heads, num_kv_heads, head_dim};
@@ -154,7 +157,7 @@ torch::Tensor QwenBlock::forward(torch::Tensor hidden_states) {
                 "num_tokens must be in [1, ", MAX_TOKENS_PER_FORWARD, "], got ", num_tokens, " (chunk longer inputs)");
     TORCH_CHECK(kv_cache.current_seq_len + num_tokens <= kv_cache.max_seq_len,
                 "KV-cache overflow: ", kv_cache.current_seq_len, " + ", num_tokens, " > max_seq_len ", kv_cache.max_seq_len);
-    
+   
     forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers, dims, num_tokens, current_stream());
     check_last_cuda_error("QwenBlock.forward");
     return hidden_states;
@@ -219,6 +222,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def("max_seq_len", &QwenBlock::max_seq_len);
 
     m.attr("MAX_TOKENS_PER_FORWARD") = MAX_TOKENS_PER_FORWARD;
+    m.attr("MAX_ATTN_CHUNKS") = MAX_ATTN_CHUNKS;   // read by engine.py::cuda_buffer_bytes
+    m.attr("NUM_SPLITS") = NUM_SPLITS;
     m.def("find_candidate_draft", &find_candidate_draft_checked, "Oracle for speculative decoding",
           pybind11::arg("tokens"), pybind11::arg("n"), pybind11::arg("k"));
     m.def("fast_argmax", &fast_argmax, "Fast GPU argmax for speculative decoding");

@@ -73,23 +73,76 @@ def attention(Q, K, V):
     p = np.exp(scores - scores.max())
     return (p / p.sum()) @ V
 
-def flash_decoding(Q, K, V, chunk=256):
-    D, S = Q.size, K.shape[0]
-    outs, lses = [], []
-    for c0 in range(0, S, chunk):
-        m, d, o = -np.inf, 0.0, np.zeros(D)
-        for t in range(c0, min(c0 + chunk, S)):
-            s_i = K[t] @ Q / np.sqrt(D)
-            m_new = max(m, s_i)
-            corr = np.exp(m - m_new)
-            d = d * corr + np.exp(s_i - m_new)
-            o = o * corr + np.exp(s_i - m_new) * V[t]
-            m = m_new
-        outs.append(o / d)
-        lses.append(m + np.log(d))
-    lses = np.array(lses)
-    lse = lses.max() + np.log(np.exp(lses - lses.max()).sum())
-    return sum(outs[c] * np.exp(lses[c] - lse) for c in range(len(outs)))
+def _ceil_div(a: int, b: int) -> int:
+    return -(-a // b)
+
+def gqa_chunk_size(num_tokens: int, past_len: int, num_kv_heads: int, max_chunks: int, num_sms: int = 70) -> int:
+    seq_max = past_len + num_tokens
+    chunks_wanted = max(1, _ceil_div(2 * num_sms, num_kv_heads * num_tokens))
+    chunk = max(32, _ceil_div(_ceil_div(seq_max, chunks_wanted), 32) * 32)
+    if _ceil_div(seq_max, chunk) > max_chunks:
+        chunk = _ceil_div(_ceil_div(seq_max, max_chunks), 32) * 32
+    return chunk
+
+def gqa_attention_kernels(q, k_cache, v_cache, past_len, max_chunks=32, num_sms=70, warps=4, in_flight=4):
+    T, H, D = q.shape
+    kv_heads = k_cache.shape[0]
+    group = H // kv_heads
+    chunk = gqa_chunk_size(T, past_len, kv_heads, max_chunks, num_sms)
+    num_chunks = _ceil_div(past_len + T, chunk)
+    partial_o = np.full((T, H, num_chunks, D), np.nan)
+    partial_lse = np.full((T, H, num_chunks), np.nan)
+    
+    # partial kernel: block (c, kvh, t)
+    for t in range(T):
+        seq_len = past_len + t + 1
+        for kvh in range(kv_heads):
+            heads = slice(kvh * group, (kvh + 1) * group)
+            qs = q[t, heads] / np.sqrt(D)                            
+            for c in range(num_chunks):
+                lo = c * chunk
+                if lo >= seq_len:
+                    continue                                        
+                hi = min(lo + chunk, seq_len)
+                m = np.full((warps, group), -np.inf)
+                l = np.zeros((warps, group))
+                acc = np.zeros((warps, group, D))
+                for w in range(warps):
+                    for base in range(lo + w, hi, warps * in_flight):
+                        for u in range(in_flight):
+                            j = base + u * warps
+                            if j >= hi:
+                                break
+                            s = qs @ k_cache[kvh, j]                
+                            m_new = np.maximum(m[w], s)
+                            corr, p = np.exp(m[w] - m_new), np.exp(s - m_new)
+                            l[w] = l[w] * corr + p
+                            acc[w] = acc[w] * corr[:, None] + p[:, None] * v_cache[kvh, j]
+                            m[w] = m_new
+                m_max = m.max(axis=0)
+                f = np.exp(m - m_max)                               
+                l_sum = (l * f).sum(axis=0)
+                partial_o[t, heads, c] = (acc * f[:, :, None]).sum(axis=0) / l_sum[:, None]
+                partial_lse[t, heads, c] = m_max + np.log(l_sum)
+                
+    # final kernel: block (h, t) merges the chunks token t can see
+    out = np.empty((T, H, D))
+    for t in range(T):
+        n = _ceil_div(past_len + t + 1, chunk)
+        lse = partial_lse[t, :, :n]
+        w = np.exp(lse - lse.max(axis=1, keepdims=True))
+        out[t] = (partial_o[t, :, :n] * w[:, :, None]).sum(axis=1) / w.sum(axis=1, keepdims=True)
+    return out, chunk, num_chunks
+
+def gqa_reference(q, k_cache, v_cache, past_len):
+    T, H, D = q.shape
+    group = H // k_cache.shape[0]
+    out = np.empty((T, H, D))
+    for t in range(T):
+        S = past_len + t + 1
+        for h in range(H):
+            out[t, h] = attention(q[t, h], k_cache[h // group, :S], v_cache[h // group, :S])
+    return out
 
 def test_python_and_cpp_quantization_produce_identical_bits():
     w = np.random.default_rng(0).standard_normal((32, 896)).astype(np.float32) * 0.02
@@ -126,19 +179,42 @@ def test_all_ones_data_cannot_detect_indexing_bugs():
             for c in range(cols):
                 out[r] += _nibble(qf[(r * cols + c) // 8], 7 - c % 8) * sf[((c * rows + r) // GROUP) % sf.size] * vec[c]
         return out
-
+    
     ones = np.ones(cols, np.float32)
-    assert np.allclose(buggy(q.ravel(), s.ravel(), ones), dequantize(q, s) @ ones)
+    assert np.allclose(buggy(q.ravel(), s.ravel(), ones), dequantize(q, s) @ ones)  
     rng = np.random.default_rng(2)
     q2, s2 = quantize_to_int4_py(rng.standard_normal((rows, cols)).astype(np.float32))
     x = rng.standard_normal(cols).astype(np.float32)
-    assert np.abs(buggy(q2.ravel(), s2.ravel(), x) - dequantize(q2, s2) @ x).max() > 1.0  
+    assert np.abs(buggy(q2.ravel(), s2.ravel(), x) - dequantize(q2, s2) @ x).max() > 1.0
 
-def test_flash_decoding_online_softmax_is_exact():
+def test_gqa_chunk_heuristic():
+    for T, past_len in [(1, 0), (1, 31), (1, 511), (1, 2047), (3, 1000), (11, 0), (11, 511), (11, 2037)]:
+        chunk = gqa_chunk_size(T, past_len, 2, 32)
+        n = _ceil_div(past_len + T, chunk)
+        assert chunk % 32 == 0 and chunk >= 32 and n <= 32
+        assert (n - 1) * chunk < past_len + T <= n * chunk           
+    # Values quoted in the design (RTX 5070 Ti: 70 SMs, Qwen2.5-0.5B: 2 KV heads)
+    assert gqa_chunk_size(1, 511, 2, 32) == 32                       
+    assert gqa_chunk_size(1, 2047, 2, 32) == 64                 
+    assert gqa_chunk_size(11, 511, 2, 32) == 96                    
+    assert gqa_chunk_size(1, 262143, 1, 1 << 16) == 1888             
+
+def test_gqa_attention_kernels_match_reference():
     rng = np.random.default_rng(3)
-    for S in (1, 255, 256, 257, 1000):
-        Q, K, V = rng.standard_normal(64), rng.standard_normal((S, 64)), rng.standard_normal((S, 64))
-        assert np.abs(flash_decoding(Q, K, V) - attention(Q, K, V)).max() < 1e-10
+    max_seq = 2048
+    for H, KVH, D in [(14, 2, 64), (1, 1, 64), (8, 1, 32)]:
+        for T in (1, 3, 11):
+            for past_len in (0, 1, 31, 32, 33, 255, 257, 1000, 2037):
+                q = rng.standard_normal((T, H, D))
+                k = rng.standard_normal((KVH, max_seq, D))
+                v = rng.standard_normal((KVH, max_seq, D))
+                k[:, past_len + T:] = np.nan                       
+                v[:, past_len + T:] = np.nan
+                k[:, past_len + T - 1] = 4.0 * q[-1, ::H // KVH]  
+                k[:, 0] += 4.0 * q[0, ::H // KVH]                     
+                out, _, _ = gqa_attention_kernels(q, k, v, past_len)
+                err = np.abs(out - gqa_reference(q, k, v, past_len)).max()
+                assert err < 1e-10, (H, KVH, D, T, past_len, err)
 
 def test_uniform_inputs_make_flash_validation_blind():
     rng = np.random.default_rng(4)
@@ -186,6 +262,7 @@ def main() -> None:
         print(f"full model INT4, lm_head {'INT4' if quantized else 'bf16'}: {b / 1e6:.0f} MB -> {R.ceiling_ms(b):.3f} ms/token")
     for S in (512, 1024, 2048):
         print(f"KV-cache read per layer at S={S}: {R.kv_cache_bytes(d, S) / 1e6:.2f} MB (fp32, 2 KV heads)")
+
 
 if __name__ == "__main__":
     main()
