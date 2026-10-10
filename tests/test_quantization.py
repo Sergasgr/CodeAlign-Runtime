@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 import scripts.quantization as quantization
-from scripts.quantization import QuantizedLinearINT4, dequantize_int4, quantize_to_int4, replace_linear_layers
+from scripts.quantization import DequantizedLinearINT4, QuantizedLinearINT4, dequantize_int4, quantize_to_int4, replace_linear_layers
 from scripts.roofline import QWEN25_CODER_05B, block_bytes_int4, ceiling_ms, model_bytes_int4
 
 def test_packing_layout_is_the_documented_one():
@@ -12,10 +12,10 @@ def test_packing_layout_is_the_documented_one():
     w[0, :8] = torch.tensor([7, -7, 1, -1, 0, 3, -3, 7], dtype=torch.float32)
     packed, scales = quantize_to_int4(w)
     assert packed.shape == (1, 16) and scales.shape == (1, 1)
-    assert scales.item() == 1.0                         
+    assert scales.item() == 1.0                        
     word = packed[0, 0].item() & 0xFFFFFFFF
     nibbles = [(word >> (4 * k)) & 0xF for k in range(8)]
-    assert nibbles == [7, 9, 1, 15, 0, 3, 13, 7]       
+    assert nibbles == [7, 9, 1, 15, 0, 3, 13, 7]        
 
 def test_roundtrip_error_is_at_most_half_a_step():
     torch.manual_seed(0)
@@ -66,6 +66,23 @@ def test_quantized_linear_dispatch_and_shapes(monkeypatch):
     torch.testing.assert_close(out5.float(), x5.float() @ w.T + linear.bias, rtol=2e-2, atol=2e-2)
     assert {"q_weight", "scales", "bias"} <= set(dict(qlinear.named_buffers()))
 
+def test_dequantized_linear_uses_the_same_int4_weights():
+    torch.manual_seed(0)
+    linear = nn.Linear(256, 64, bias=True)
+    deq = DequantizedLinearINT4.from_linear(linear)
+    q = QuantizedLinearINT4.from_linear(linear)
+    assert deq.weight.dtype == torch.float32 and torch.equal(deq.weight, dequantize_int4(q.q_weight, q.scales))
+    x = torch.randn(2, 3, 256, dtype=torch.bfloat16)
+    out = deq(x)
+    assert out.dtype == torch.bfloat16 and out.shape == (2, 3, 64)
+    torch.testing.assert_close(out, (x.float() @ deq.weight.T + linear.bias.float()).to(torch.bfloat16))
+    assert {"weight", "bias"} <= set(dict(deq.named_buffers()))
+
+def test_replace_linear_layers_with_a_factory():
+    model = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Sequential(nn.Linear(128, 256)))
+    assert replace_linear_layers(model, factory=DequantizedLinearINT4.from_linear) == 2
+    assert isinstance(model[0], DequantizedLinearINT4) and isinstance(model[2][0], DequantizedLinearINT4)
+
 def test_replace_linear_layers_respects_skip():
     model = nn.Sequential()
     model.add_module("body", nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 256)))
@@ -75,7 +92,7 @@ def test_replace_linear_layers_respects_skip():
 
 def test_roofline_numbers():
     d = QWEN25_CODER_05B
-    assert abs(block_bytes_int4(d) / 1e6 - 7.93) < 0.01        
-    assert abs(ceiling_ms(block_bytes_int4(d)) * 1e3 - 8.85) < 0.05 
+    assert abs(block_bytes_int4(d) / 1e6 - 7.93) < 0.01     
+    assert abs(ceiling_ms(block_bytes_int4(d)) * 1e3 - 8.85) < 0.05  
     assert 0.28 < ceiling_ms(model_bytes_int4(d, quantize_lm_head=True)) < 0.31
     assert 0.50 < ceiling_ms(model_bytes_int4(d, quantize_lm_head=False)) < 0.54

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 GROUP_SIZE = 128
 
@@ -14,6 +15,7 @@ def _kernels():
     global _KERNELS
     if _KERNELS is None:
         import codealign_runtime_kernels
+
         _KERNELS = codealign_runtime_kernels
     return _KERNELS
 
@@ -21,6 +23,7 @@ def _gemm():
     global _GEMM
     if _GEMM is None:
         import codealign_runtime_gemm
+
         _GEMM = codealign_runtime_gemm
     return _GEMM
 
@@ -28,7 +31,6 @@ def quantize_to_int4(weight: torch.Tensor, group_size: int = GROUP_SIZE) -> tupl
     rows, cols = weight.shape
     if cols % group_size != 0:
         raise ValueError(f"cols ({cols}) must be a multiple of group_size ({group_size})")
-    
     w_groups = weight.detach().to(torch.float32).contiguous().view(-1, group_size)
     max_vals = w_groups.abs().max(dim=1, keepdim=True)[0]
     scales = torch.clamp(max_vals, min=1e-9) / 7.0
@@ -48,7 +50,7 @@ def quantize_to_int4(weight: torch.Tensor, group_size: int = GROUP_SIZE) -> tupl
 def dequantize_int4(packed: torch.Tensor, scales: torch.Tensor, group_size: int = GROUP_SIZE) -> torch.Tensor:
     rows = packed.shape[0]
     shifts = torch.arange(0, 32, 4, device=packed.device, dtype=torch.int32)
-    q = (packed.unsqueeze(-1) >> shifts) & 0xF                  # [rows, cols/8, 8]
+    q = (packed.unsqueeze(-1) >> shifts) & 0xF             
     q = torch.where(q > 7, q - 16, q).reshape(rows, -1).to(torch.float32)
     return q * scales.to(torch.float32).repeat_interleave(group_size, dim=1)
 
@@ -85,7 +87,30 @@ class QuantizedLinearINT4(nn.Module):
     def extra_repr(self) -> str:
         return f"in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}, int4 g={GROUP_SIZE}"
 
-def replace_linear_layers(module: nn.Module, skip: Iterable[str] = (), _prefix: str = "") -> int:
+class DequantizedLinearINT4(nn.Module):
+    def __init__(self, q_weight: torch.Tensor, scales: torch.Tensor, bias: torch.Tensor | None = None):
+        super().__init__()
+        self.register_buffer("weight", dequantize_int4(q_weight, scales).contiguous())
+        self.register_buffer("bias", None if bias is None else bias.detach().to(torch.float32).contiguous())
+        self.out_features, self.in_features = self.weight.shape
+
+    @classmethod
+    def from_weight(cls, weight: torch.Tensor, bias: torch.Tensor | None = None) -> "DequantizedLinearINT4":
+        q_weight, scales = quantize_to_int4(weight)
+        return cls(q_weight, scales, bias)
+
+    @classmethod
+    def from_linear(cls, linear: nn.Linear) -> "DequantizedLinearINT4":
+        return cls.from_weight(linear.weight, linear.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.linear(x.to(torch.float32), self.weight, self.bias).to(x.dtype)
+
+    def extra_repr(self) -> str:
+        return (f"in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}, "
+                f"int4 g={GROUP_SIZE} dequantized to fp32")
+
+def replace_linear_layers(module: nn.Module, skip: Iterable[str] = (), factory: Callable[[nn.Linear], nn.Module] = QuantizedLinearINT4.from_linear, _prefix: str = "") -> int:
     skip = set(skip)
     replaced = 0
     for name, child in module.named_children():
@@ -93,8 +118,8 @@ def replace_linear_layers(module: nn.Module, skip: Iterable[str] = (), _prefix: 
         if isinstance(child, nn.Linear):
             if qualified in skip:
                 continue
-            setattr(module, name, QuantizedLinearINT4.from_linear(child))
+            setattr(module, name, factory(child))
             replaced += 1
         else:
-            replaced += replace_linear_layers(child, skip, f"{qualified}.")
+            replaced += replace_linear_layers(child, skip, factory, f"{qualified}.")
     return replaced

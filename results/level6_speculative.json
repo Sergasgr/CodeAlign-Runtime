@@ -1,9 +1,9 @@
 {
   "environment": {
-    "timestamp_utc": "2026-10-08T20:02:07+00:00",
+    "timestamp_utc": "2026-10-10T13:24:16+00:00",
     "python": "3.12.3",
     "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
-    "git_commit": "773fd65",
+    "git_commit": "cc04988",
     "git_dirty": false,
     "nvidia_driver": "595.91.07",
     "torch": "2.13.0+cu130",
@@ -25,24 +25,24 @@
         "forwards": 256,
         "drafted": 0,
         "accepted": 0,
-        "seconds": 1.0479339479999936,
-        "prefill_seconds": 0.0441005920000066,
+        "seconds": 0.43485970800065843,
+        "prefill_seconds": 0.04481368699998711,
         "acceptance_rate": 0.0,
         "tokens_per_forward": 1.0,
-        "tokens_per_second": 244.29020597012052
+        "tokens_per_second": 588.6956075489348
       },
       "pld": {
         "new_tokens": 256,
         "forwards": 48,
         "drafted": 227,
         "accepted": 208,
-        "seconds": 0.3247322489999931,
-        "prefill_seconds": 0.04409324000000936,
+        "seconds": 0.32032669500040356,
+        "prefill_seconds": 0.044141936999949394,
         "acceptance_rate": 0.9162995594713657,
         "tokens_per_forward": 5.333333333333333,
-        "tokens_per_second": 788.3417824633901
+        "tokens_per_second": 799.1840954737709
       },
-      "speedup": 3.227070767461768,
+      "speedup": 1.357550634361306,
       "identical_to_greedy": true,
       "first_divergence": null,
       "pld_text": "    def __init__(self, name, unit_price, quantity=0):\n        self.name = name\n        self.unit_price = unit_price\n        self.quantity = quantity\n\n    def total_cost(self):\n        return self.unit_price * self.quantity\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n        self.quantity += amount\n\n    def restock(self, amount):\n       "
@@ -55,24 +55,24 @@
         "forwards": 256,
         "drafted": 0,
         "accepted": 0,
-        "seconds": 1.047161339000013,
-        "prefill_seconds": 0.02348189399999967,
+        "seconds": 0.4345879459997377,
+        "prefill_seconds": 0.0243508550011029,
         "acceptance_rate": 0.0,
         "tokens_per_forward": 1.0,
-        "tokens_per_second": 244.470446401762
+        "tokens_per_second": 589.0637380912412
       },
       "pld": {
         "new_tokens": 256,
         "forwards": 193,
         "drafted": 172,
         "accepted": 63,
-        "seconds": 0.8864311149999935,
-        "prefill_seconds": 0.021986333000000968,
+        "seconds": 0.5090435399997659,
+        "prefill_seconds": 0.022037523000108195,
         "acceptance_rate": 0.36627906976744184,
         "tokens_per_forward": 1.3264248704663213,
-        "tokens_per_second": 288.79852666273104
+        "tokens_per_second": 502.9039362725588
       },
-      "speedup": 1.1813228589116265,
+      "speedup": 0.8537343308588841,
       "identical_to_greedy": true,
       "first_divergence": null,
       "pld_text": "    // Getter methods\n    int getId() {\n        return id;\n    }\n\n    std::string getName() {\n        return name;\n    }\n\n    std::string getEmail() {\n        return email;\n    }\n\n    // Setter methods\n    void setId(int id) {\n        this->id = id;\n    }\n\n    void setName(std::string name) {\n        this->name = name;\n    }\n\n    void setEmail(std::string email) {\n        this->email = email;\n    }\n};\n\nint main() {\n    // Create an instance of the User class\n    User user;\n    // Set the values of the instance's members\n    user.setId(1);\n    user.setName(\"John Doe\");\n    user.setEmail(\"john.doe@example.com\");\n    // Print the values of the instance's members\n    std::cout << \"User ID: \" << user.getId() << std::endl;\n    std::cout << \"User Name: \" << user.getName() << std::endl;\n    std::cout << \"User Email: \" << user.getEmail() << std::endl;\n    // Get the values of the instance's members\n    std::cout << \"User ID: \" << user.getId() << std::endl;\n    std::cout << \""
@@ -85,24 +85,24 @@
         "forwards": 69,
         "drafted": 0,
         "accepted": 0,
-        "seconds": 0.2819712410000079,
-        "prefill_seconds": 0.05089342099999783,
+        "seconds": 0.11677915599830158,
+        "prefill_seconds": 0.05290973800038046,
         "acceptance_rate": 0.0,
         "tokens_per_forward": 1.0,
-        "tokens_per_second": 244.70580671735266
+        "tokens_per_second": 590.8588686923164
       },
       "pld": {
         "new_tokens": 69,
         "forwards": 33,
         "drafted": 45,
         "accepted": 36,
-        "seconds": 0.1597795830000024,
-        "prefill_seconds": 0.04958435700000052,
+        "seconds": 0.10254542000075162,
+        "prefill_seconds": 0.04978489499990246,
         "acceptance_rate": 0.8,
         "tokens_per_forward": 2.090909090909091,
-        "tokens_per_second": 431.84491225014006
+        "tokens_per_second": 672.8725670975286
       },
-      "speedup": 1.7647513887929205,
+      "speedup": 1.1388042098559412,
       "identical_to_greedy": true,
       "first_divergence": null,
       "pld_text": "        self.assertEqual(slugify(\"Hello World!\"), \"hello-world\")\n\n    def test_no_punctuation(self):\n        self.assertEqual(slugify(\"Hello World\"), \"hello-world\")\n\n    def test_no_slashes(self):\n        self.assertEqual(slugify(\"Hello World\"), \"hello-world\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()<|endoftext|>"
@@ -115,28 +115,28 @@
         "forwards": 256,
         "drafted": 0,
         "accepted": 0,
-        "seconds": 1.046416874000002,
-        "prefill_seconds": 0.012146272000009617,
+        "seconds": 0.4345025460006582,
+        "prefill_seconds": 0.013582485998995253,
         "acceptance_rate": 0.0,
         "tokens_per_forward": 1.0,
-        "tokens_per_second": 244.64437296526197
+        "tokens_per_second": 589.1795165674638
       },
       "pld": {
         "new_tokens": 256,
         "forwards": 70,
         "drafted": 191,
         "accepted": 186,
-        "seconds": 0.39403030799999783,
-        "prefill_seconds": 0.010960968000006233,
+        "seconds": 0.3200997230014764,
+        "prefill_seconds": 0.010974230999636347,
         "acceptance_rate": 0.9738219895287958,
         "tokens_per_forward": 3.657142857142857,
-        "tokens_per_second": 649.6962157540465
+        "tokens_per_second": 799.7507701648941
       },
-      "speedup": 2.6556761060116414,
+      "speedup": 1.357397444541538,
       "identical_to_greedy": true,
       "first_divergence": null,
       "pld_text": "\nI'm trying to write a small command-line todo application using argparse and a JSON file for storage. I'm using Python 3.7.3. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure what I'm doing wrong. I'm not sure"
     }
   ],
-  "overall_speedup": 1.9396800446135043
+  "overall_speedup": 1.1347539183313733
 }

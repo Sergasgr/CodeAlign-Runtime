@@ -6,7 +6,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from scripts.quantization import QuantizedLinearINT4, dequantize_int4, quantize_to_int4
+from scripts.quantization import DequantizedLinearINT4, QuantizedLinearINT4, dequantize_int4, quantize_to_int4
 
 pytestmark = pytest.mark.gpu
 
@@ -18,7 +18,7 @@ def _int4_case(rows, cols, device, seed=0):
 
 GEMV_SHAPES = [(4864, 896), (896, 4864), (896, 896), (128, 896),   
                (151936, 896),                                        
-               (1, 128), (37, 128), (130, 896), (1001, 4864)]     
+               (1, 128), (37, 128), (130, 896), (1001, 4864)]        
 
 @pytest.mark.parametrize("rows,cols", GEMV_SHAPES)
 @pytest.mark.parametrize("kernel", ["gemv_int4_forward", "gemv_int4_v1_forward"])   
@@ -45,7 +45,7 @@ def test_gemv_int4_v2_bias_epilogue(rows, cols, device):
 def test_gemv_int4_v2_rejects_unsupported_shapes(device):
     import codealign_runtime_kernels as kernels
 
-    q, s, _ = _int4_case(4, 12416, device)   
+    q, s, _ = _int4_case(4, 12416, device) 
     with pytest.raises(RuntimeError):
         kernels.gemv_int4_forward(q, s, torch.randn(12416, device=device))
 
@@ -68,6 +68,15 @@ def test_quantized_linear_is_a_drop_in_replacement(seq_len, device):
     out = qlinear(x)
     assert out.dtype == torch.bfloat16 and out.shape == (1, seq_len, 128)
     torch.testing.assert_close(out.float(), ref, rtol=2e-2, atol=2e-2)
+
+@pytest.mark.parametrize("seq_len", [1, 7])   
+def test_kernels_match_the_dequantized_torch_path(seq_len, device):
+    torch.manual_seed(0)
+    linear = nn.Linear(896, 4864, bias=True).to(device)
+    kernels_path = QuantizedLinearINT4.from_linear(linear).to(device)
+    torch_path = DequantizedLinearINT4.from_linear(linear).to(device)
+    x = torch.randn(1, seq_len, 896, device=device)   
+    torch.testing.assert_close(kernels_path(x), torch_path(x), rtol=1e-4, atol=1e-4)
 
 def _attention(Q, K, V):
     scores = (Q @ K.transpose(-2, -1)) / math.sqrt(Q.shape[-1])
@@ -119,7 +128,7 @@ def _gqa_case(num_heads, num_kv_heads, head_dim, num_tokens, past_len, device):
     v_cache = torch.randn(num_kv_heads, GQA_MAX_SEQ, head_dim, generator=g)
     seq_max = past_len + num_tokens
     group = num_heads // num_kv_heads
-    k_cache[:, 0] += 4.0 * q[0, ::group]             
+    k_cache[:, 0] += 4.0 * q[0, ::group]            
     k_cache[:, seq_max - 1] = 4.0 * q[-1, ::group]   
     k_cache[:, seq_max:] = float("nan")             
     v_cache[:, seq_max:] = float("nan")
@@ -152,7 +161,7 @@ def test_gqa_attention_respects_max_chunks(max_chunks, device):
 
 @pytest.mark.parametrize("num_heads,num_kv_heads,head_dim,past_len,num_tokens", [
     (9, 1, 64, 0, 1),     
-    (14, 3, 64, 0, 1),     
+    (14, 3, 64, 0, 1),    
     (14, 2, 96, 0, 1),    
     (14, 2, 64, 2040, 9), 
 ])

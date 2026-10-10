@@ -55,7 +55,7 @@ def kernel_table(name: str, title_shape: str) -> str | None:
         return None
     passed = sum(c["pass"] for c in r["validation"])
     out = [f"{title_shape}: {r['shape']}", "", _timings_table(r["timings"]), ""]
-    if r.get("lm_head"):   # gemv_benchmark since v1.1: the lm_head shape (larger than L2)
+    if r.get("lm_head"):   
         out += [f"{title_shape}: {r['lm_head']['shape']}", "", _timings_table(r["lm_head"]["timings"]), ""]
     out += [f"Validation: {passed}/{len(r['validation'])} kernel x shape checks passed (random data, CPU reference).",
             f"_{r['device'].get('name', '?')}_"]
@@ -66,7 +66,7 @@ def level4() -> str | None:
     if not r or not r.get("benchmark"):
         return None
     worst = max(v["max_abs_err"] for v in r["validation"])
-    has_v10 = "custom_v10" in r["benchmark"][0]          # since v1.1: the legacy v1.0 kernel in the same run
+    has_v10 = "custom_v10" in r["benchmark"][0]     
     headers = ["Seq length", "PyTorch p50 (ms)"] + (["v1.0 kernel p50 (ms)"] if has_v10 else []) + \
               ["Custom p50 (ms)", "PyTorch / Custom"] + (["v1.0 / Custom"] if has_v10 else []) + ["KV-read ceiling (ms)"]
     rows = [[f"{b['S']:,}", fmt(b["pytorch"]["p50_ms"], 4)] + ([fmt(b["custom_v10"]["p50_ms"], 4)] if has_v10 else []) +
@@ -127,19 +127,35 @@ def level6() -> str | None:
         f"Overall speedup: **{r['overall_speedup']:.2f}x**.",
         env_line(r)])
 
+QUALITY_TAGS = [  
+    ("bf16", "bf16 (reference)"),
+    ("int4", "INT4 g=128 on the CUDA kernels"),
+    ("int4_dequant", "INT4 g=128, same weights dequantized, torch matmul"),
+    ("int4_bf16head", "INT4 g=128 on the CUDA kernels, lm_head in bf16"),
+    ("int4_dequant_bf16head", "INT4 g=128 dequantized, lm_head in bf16"),
+]
+
 def quality() -> str | None:
-    bf16, int4 = load("humaneval_bf16"), load("humaneval_int4")
-    if not (bf16 or int4):
+    runs = [(tag, label, load(f"humaneval_{tag}")) for tag, label in QUALITY_TAGS]
+    runs = [(tag, label, r) for tag, label, r in runs if r]
+    if not runs:
         return None
+    ref = next((r for tag, _, r in runs if tag == "bf16"), None)
+    analysis = load("humaneval_analysis") or {}
+    summary = analysis.get("summary", {})
     rows = []
-    if bf16:
-        rows.append(["bf16 (reference)", fmt(bf16["pass@1"], 4)])
-    if int4:
-        rows.append([f"INT4 g=128, {int4['int4_layers']} layers (lm_head {'INT4' if int4['quantize_lm_head'] else 'bf16'})",
-                     fmt(int4["pass@1"], 4)])
-    if bf16 and int4:
-        rows.append(["Δ", f"{int4['pass@1'] - bf16['pass@1']:+.4f}"])
-    return table(["Model", "HumanEval pass@1 (greedy)"], rows)
+    for tag, label, r in runs:
+        a = summary.get(tag, {})
+        rows.append([label, fmt(r["pass@1"], 4), "—" if ref is None or r is ref else f"{r['pass@1'] - ref['pass@1']:+.4f}",
+                     str(a.get("body_only_solved", "—")), str(a.get("failures", {}).get("SyntaxError", "—")) if a else "—",
+                     str(a.get("whitespace_runs", "—")),
+                     "—" if not r.get("tpot_ceiling_ms") else fmt(r["tpot_ceiling_ms"], 3)])
+    out = [table(["Model", "HumanEval pass@1 (greedy)", "Δ vs bf16", "Body-only solved", "SyntaxError",
+                  "≥50-char blank runs", "TPOT ceiling (ms)"], rows)]
+    for name, o in analysis.get("overlap", {}).items():
+        out.append(f"\n{name.replace('_vs_', ' vs ')}: solved by both {o['both']}, only by the first "
+                   f"{o['only_reference']}, only by the second {o['only_other']}.")
+    return "\n".join(out)
 
 def llama_cpp() -> str | None:
     r = load("llama_cpp")
@@ -148,7 +164,8 @@ def llama_cpp() -> str | None:
     rows = []
     for variant, v in r["variants"].items():
         for d in v["decode"]:
-            rows.append([variant, f"{v['file_bytes'] / 1e6:.0f}", f"{d['n_depth']:,}", f"{d['tokens_per_s']:.1f}", fmt(d["tpot_ms"], 3)])
+            rows.append([variant, f"{v['file_bytes'] / 1e6:.0f}", f"{d['n_depth']:,}", f"{d['tokens_per_s']:.1f}",
+                         fmt(d["tpot_ms"], 3)])
     return table(["GGUF", "File (MB)", "Context depth", "tok/s", "TPOT (ms)"], rows)
 
 def summary() -> str:
@@ -156,13 +173,17 @@ def summary() -> str:
     l0, l5, l6, ll = load("level0_baseline"), load("level5_engine"), load("level6_speculative"), load("llama_cpp")
     bf16, int4 = load("humaneval_bf16"), load("humaneval_int4")
     if l0:
-        rows.append(["PyTorch eager (bf16)", fmt(l0["ttft"]["p50_ms"], 2), fmt(l0["tpot"]["p50_ms"], 3), f"{l0['pct_of_ceiling_p50']:.1f}%", f"{l0['peak_vram_mb']:.0f}", fmt(bf16 and bf16["pass@1"], 3)])
+        rows.append(["PyTorch eager (bf16)", fmt(l0["ttft"]["p50_ms"], 2), fmt(l0["tpot"]["p50_ms"], 3),
+                     f"{l0['pct_of_ceiling_p50']:.1f}%", f"{l0['peak_vram_mb']:.0f}", fmt(bf16 and bf16["pass@1"], 3)])
     if l5:
         m = min(l5["model_decode"], key=lambda x: abs(x["context"] - 512))
-        rows.append([f"C++/CUDA engine, INT4 (S={m['context']})", fmt(l5.get("e2e", {}).get("ttft_ms"), 1), fmt(m["p50_ms"], 3), f"{m['pct_of_ceiling_p50']:.1f}%", f"{_engine_vram_mb(l5):.0f}", fmt(int4 and int4["pass@1"], 3)])
+        rows.append([f"C++/CUDA engine, INT4 (S={m['context']})", fmt(l5.get("e2e", {}).get("ttft_ms"), 1),
+                     fmt(m["p50_ms"], 3), f"{m['pct_of_ceiling_p50']:.1f}%", f"{_engine_vram_mb(l5):.0f}",
+                     fmt(int4 and int4["pass@1"], 3)])
     if l6:
         lossless = all(p["identical_to_greedy"] for p in l6["prompts"])
-        rows.append(["+ Prompt Lookup Decoding", "—", "—", "—", "—", f"x{l6['overall_speedup']:.2f} tok/s" + (", identical output" if lossless else ", output differs (see Level 6)")])
+        rows.append(["+ Prompt Lookup Decoding", "—", "—", "—", "—",
+                     f"x{l6['overall_speedup']:.2f} tok/s" + (", identical output" if lossless else ", output differs (see Level 6)")])
     if ll:
         for variant in ("Q4_0", "Q4_K_M"):
             if variant in ll["variants"]:
