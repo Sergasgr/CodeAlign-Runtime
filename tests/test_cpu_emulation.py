@@ -54,7 +54,7 @@ def gemv_int4_naive(q_flat, s_flat, vec, rows, cols):
 
 def gemv_int4_optimized(q_flat, s_flat, vec, rows, cols, out_init):
     out = out_init.copy()
-    if cols % 32 != 0:  
+    if cols % 32 != 0: 
         return out
     for row in range(rows):
         acc = 0.0
@@ -67,6 +67,50 @@ def gemv_int4_optimized(q_flat, s_flat, vec, rows, cols, out_init):
                         acc += _nibble(q_flat[base + j], k) * scale * vec[i * 32 + j * 8 + k]
         out[row] = acc
     return out
+
+V2_WARPS, V2_WORDS_PER_LANE, V2_LONG_ROW_COLS = 8, 8, 2048
+
+def v2_nibble_to_float(word: int, k: int) -> np.float32:
+    u = (int(word) ^ 0x88888888) & 0xFFFFFFFF
+    bits = np.array([0x4B000000 | ((u >> (4 * k)) & 0xF)], dtype=np.uint32)
+    return bits.view(np.float32)[0] - np.float32(8388616.0)
+
+def gemv_int4_v2(q_flat, s_flat, vec, rows, cols, grid, bias=None, out_init=None):
+    V2_ROWS = 1 if cols >= V2_LONG_ROW_COLS else 2
+    words, groups = cols // 8, cols // 128
+    xa = vec.reshape(-1, 8)[:, :4]                      
+    xb = vec.reshape(-1, 8)[:, 4:]
+    staged = np.empty((2 * words, 4), np.float32)        
+    for i in range(2 * words):
+        staged[i] = (xb if i & 1 else xa)[i >> 1]
+    assert np.array_equal(staged.reshape(-1), vec)
+    out = np.full(rows, np.nan, np.float32) if out_init is None else out_init.copy()
+    writes = np.zeros(rows, int)
+    num_warps = grid * V2_WARPS
+    for warp_global in range(num_warps):
+        r0 = warp_global * V2_ROWS
+        while r0 < rows:
+            nr = min(V2_ROWS, rows - r0)
+            span = nr * words
+            acc = np.zeros((32, V2_ROWS), np.float32)   
+            for lane in range(32):
+                for f0 in range(0, span, 32 * V2_WORDS_PER_LANE):
+                    for u in range(V2_WORDS_PER_LANE):
+                        f = f0 + u * 32 + lane
+                        if f >= span:
+                            continue
+                        word = q_flat[r0 * words + f]
+                        scale = s_flat[r0 * groups + (f >> 4)]
+                        r_local = sum(f >= k * words for k in range(1, V2_ROWS))
+                        w = f - r_local * words
+                        x8 = np.concatenate([xa[w], xb[w]])
+                        dot = np.float32(sum(v2_nibble_to_float(word, k) * x8[k] for k in range(8)))
+                        acc[lane, r_local] += np.float32(scale) * dot
+            for r in range(nr):
+                out[r0 + r] = acc[:, r].sum() + (bias[r0 + r] if bias is not None else 0.0)
+                writes[r0 + r] += 1
+            r0 += num_warps * V2_ROWS
+    return out, writes
 
 def attention(Q, K, V):
     scores = K @ Q / np.sqrt(Q.size)
@@ -92,17 +136,15 @@ def gqa_attention_kernels(q, k_cache, v_cache, past_len, max_chunks=32, num_sms=
     num_chunks = _ceil_div(past_len + T, chunk)
     partial_o = np.full((T, H, num_chunks, D), np.nan)
     partial_lse = np.full((T, H, num_chunks), np.nan)
-    
-    # partial kernel: block (c, kvh, t)
     for t in range(T):
         seq_len = past_len + t + 1
         for kvh in range(kv_heads):
             heads = slice(kvh * group, (kvh + 1) * group)
-            qs = q[t, heads] / np.sqrt(D)                            
+            qs = q[t, heads] / np.sqrt(D)                              
             for c in range(num_chunks):
                 lo = c * chunk
                 if lo >= seq_len:
-                    continue                                        
+                    continue                                          
                 hi = min(lo + chunk, seq_len)
                 m = np.full((warps, group), -np.inf)
                 l = np.zeros((warps, group))
@@ -113,19 +155,17 @@ def gqa_attention_kernels(q, k_cache, v_cache, past_len, max_chunks=32, num_sms=
                             j = base + u * warps
                             if j >= hi:
                                 break
-                            s = qs @ k_cache[kvh, j]                
+                            s = qs @ k_cache[kvh, j]                   
                             m_new = np.maximum(m[w], s)
                             corr, p = np.exp(m[w] - m_new), np.exp(s - m_new)
                             l[w] = l[w] * corr + p
                             acc[w] = acc[w] * corr[:, None] + p[:, None] * v_cache[kvh, j]
                             m[w] = m_new
                 m_max = m.max(axis=0)
-                f = np.exp(m - m_max)                               
+                f = np.exp(m - m_max)                                 
                 l_sum = (l * f).sum(axis=0)
                 partial_o[t, heads, c] = (acc * f[:, :, None]).sum(axis=0) / l_sum[:, None]
                 partial_lse[t, heads, c] = m_max + np.log(l_sum)
-                
-    # final kernel: block (h, t) merges the chunks token t can see
     out = np.empty((T, H, D))
     for t in range(T):
         n = _ceil_div(past_len + t + 1, chunk)
@@ -133,6 +173,7 @@ def gqa_attention_kernels(q, k_cache, v_cache, past_len, max_chunks=32, num_sms=
         w = np.exp(lse - lse.max(axis=1, keepdims=True))
         out[t] = (partial_o[t, :, :n] * w[:, :, None]).sum(axis=1) / w.sum(axis=1, keepdims=True)
     return out, chunk, num_chunks
+
 
 def gqa_reference(q, k_cache, v_cache, past_len):
     T, H, D = q.shape
@@ -165,39 +206,56 @@ def test_optimized_gemv_guard_skips_unsupported_widths():
     rows, cols = 4, 896
     q, s = quantize_to_int4_py(np.ones((rows, cols), np.float32))
     for bad_cols in (7, 38, 1):
-        out = gemv_int4_optimized(q.ravel(), s.ravel(), np.ones(cols, np.float32), rows, bad_cols,
-                                  np.full(rows, np.nan, np.float32))
+        out = gemv_int4_optimized(q.ravel(), s.ravel(), np.ones(cols, np.float32), rows, bad_cols, np.full(rows, np.nan, np.float32))
         assert np.isnan(out).all()
 
 def test_all_ones_data_cannot_detect_indexing_bugs():
     rows, cols = 8, 256
     q, s = quantize_to_int4_py(np.ones((rows, cols), np.float32))
 
-    def buggy(qf, sf, vec):  
+    def buggy(qf, sf, vec): 
         out = np.zeros(rows, np.float32)
         for r in range(rows):
             for c in range(cols):
                 out[r] += _nibble(qf[(r * cols + c) // 8], 7 - c % 8) * sf[((c * rows + r) // GROUP) % sf.size] * vec[c]
         return out
-    
+
     ones = np.ones(cols, np.float32)
-    assert np.allclose(buggy(q.ravel(), s.ravel(), ones), dequantize(q, s) @ ones)  
+    assert np.allclose(buggy(q.ravel(), s.ravel(), ones), dequantize(q, s) @ ones) 
     rng = np.random.default_rng(2)
     q2, s2 = quantize_to_int4_py(rng.standard_normal((rows, cols)).astype(np.float32))
     x = rng.standard_normal(cols).astype(np.float32)
-    assert np.abs(buggy(q2.ravel(), s2.ravel(), x) - dequantize(q2, s2) @ x).max() > 1.0
+    assert np.abs(buggy(q2.ravel(), s2.ravel(), x) - dequantize(q2, s2) @ x).max() > 1.0 
+
+def test_v2_nibble_decoding_is_exact():
+    for n in range(16):                                   
+        word = sum(n << (4 * k) for k in range(8))
+        expected = n - 16 if n > 7 else n
+        assert all(v2_nibble_to_float(word, k) == expected for k in range(8))
+
+def test_gemv_int4_v2_index_math():
+    rng = np.random.default_rng(5)
+    for rows, cols, grid in [(16, 896, 1), (37, 128, 3), (5, 4864, 1), (130, 896, 1), (130, 896, 280), (1, 128, 1)]:
+        q, s = quantize_to_int4_py(rng.standard_normal((rows, cols)).astype(np.float32))
+        x = rng.standard_normal(cols).astype(np.float32)
+        bias = rng.standard_normal(rows).astype(np.float32)
+        ref = dequantize(q, s) @ x
+        out, writes = gemv_int4_v2(q.ravel(), s.ravel(), x, rows, cols, grid)
+        assert (writes == 1).all(), (rows, cols, grid)      
+        np.testing.assert_allclose(out, ref, rtol=1e-4, atol=1e-3)
+        out_b, _ = gemv_int4_v2(q.ravel(), s.ravel(), x, rows, cols, grid, bias=bias)
+        np.testing.assert_allclose(out_b, ref + bias, rtol=1e-4, atol=1e-3)
 
 def test_gqa_chunk_heuristic():
     for T, past_len in [(1, 0), (1, 31), (1, 511), (1, 2047), (3, 1000), (11, 0), (11, 511), (11, 2037)]:
         chunk = gqa_chunk_size(T, past_len, 2, 32)
         n = _ceil_div(past_len + T, chunk)
         assert chunk % 32 == 0 and chunk >= 32 and n <= 32
-        assert (n - 1) * chunk < past_len + T <= n * chunk           
-    # Values quoted in the design (RTX 5070 Ti: 70 SMs, Qwen2.5-0.5B: 2 KV heads)
-    assert gqa_chunk_size(1, 511, 2, 32) == 32                       
-    assert gqa_chunk_size(1, 2047, 2, 32) == 64                 
-    assert gqa_chunk_size(11, 511, 2, 32) == 96                    
-    assert gqa_chunk_size(1, 262143, 1, 1 << 16) == 1888             
+        assert (n - 1) * chunk < past_len + T <= n * chunk          
+    assert gqa_chunk_size(1, 511, 2, 32) == 32                     
+    assert gqa_chunk_size(1, 2047, 2, 32) == 64                     
+    assert gqa_chunk_size(11, 511, 2, 32) == 96                     
+    assert gqa_chunk_size(1, 262143, 1, 1 << 16) == 1888            
 
 def test_gqa_attention_kernels_match_reference():
     rng = np.random.default_rng(3)
@@ -208,10 +266,10 @@ def test_gqa_attention_kernels_match_reference():
                 q = rng.standard_normal((T, H, D))
                 k = rng.standard_normal((KVH, max_seq, D))
                 v = rng.standard_normal((KVH, max_seq, D))
-                k[:, past_len + T:] = np.nan                       
+                k[:, past_len + T:] = np.nan                        
                 v[:, past_len + T:] = np.nan
-                k[:, past_len + T - 1] = 4.0 * q[-1, ::H // KVH]  
-                k[:, 0] += 4.0 * q[0, ::H // KVH]                     
+                k[:, past_len + T - 1] = 4.0 * q[-1, ::H // KVH]      
+                k[:, 0] += 4.0 * q[0, ::H // KVH]             
                 out, _, _ = gqa_attention_kernels(q, k, v, past_len)
                 err = np.abs(out - gqa_reference(q, k, v, past_len)).max()
                 assert err < 1e-10, (H, KVH, D, T, past_len, err)
@@ -262,7 +320,6 @@ def main() -> None:
         print(f"full model INT4, lm_head {'INT4' if quantized else 'bf16'}: {b / 1e6:.0f} MB -> {R.ceiling_ms(b):.3f} ms/token")
     for S in (512, 1024, 2048):
         print(f"KV-cache read per layer at S={S}: {R.kv_cache_bytes(d, S) / 1e6:.2f} MB (fp32, 2 KV heads)")
-
 
 if __name__ == "__main__":
     main()

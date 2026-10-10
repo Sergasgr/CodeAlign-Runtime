@@ -9,17 +9,18 @@
 
 void run_quantized_linear(const QuantizedLinear& proj, float* input, float* output, float* buffer, int num_tokens, cudaStream_t stream) {
     if(num_tokens == 1) {
-        run_gemv_int4_optimized_kernel(proj.q_weight, proj.scales, input, output, proj.out_features, proj.in_features, stream);
-    } else {
-        run_gemm_int4_splitk_partial_kernel(input, proj.q_weight, proj.scales, buffer, num_tokens, NUM_SPLITS, proj.in_features, proj.out_features, stream);
-        run_gemm_int4_splitk_final_kernel(buffer, output, num_tokens, proj.out_features, NUM_SPLITS, stream);
+        run_gemv_int4_v2_kernel(proj.q_weight, proj.scales, input, proj.bias, output, proj.out_features, proj.in_features, stream);
+        return;
     }
+    run_gemm_int4_splitk_partial_kernel(input, proj.q_weight, proj.scales, buffer, num_tokens, NUM_SPLITS, proj.in_features, proj.out_features, stream);
+    run_gemm_int4_splitk_final_kernel(buffer, output, num_tokens, proj.out_features, NUM_SPLITS, stream);
     if(proj.bias != nullptr) {
         run_add_bias_kernel(output, proj.bias, num_tokens, proj.out_features, stream);
     }
 }
 
-void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache, LayerBuffers& buffers, const ModelDims& dims, int num_tokens, cudaStream_t stream) {
+void forward_transformer_block(float* hidden_states, const TransformerBlockWeights& weights, LayerKVCache& kv_cache,
+                               LayerBuffers& buffers, const ModelDims& dims, int num_tokens, cudaStream_t stream) {
     const int D = dims.hidden;
     const int q_dim = dims.q_dim();
     const int kv_dim = dims.kv_dim();

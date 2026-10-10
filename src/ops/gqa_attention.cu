@@ -10,9 +10,8 @@
 namespace {
     constexpr int WARP_SIZE = 32;
     constexpr int PARTIAL_THREADS = GQA_WARPS * WARP_SIZE;
-    constexpr int TOKENS_IN_FLIGHT = 4;      
+    constexpr int TOKENS_IN_FLIGHT = 4;     
     constexpr int BLOCKS_PER_SM = 2;       
-    constexpr int MAX_DEVICES = 64;
 
     __device__ __forceinline__ void load_vec(const float* ptr, float (&x)[2]) {
         const float2 v = *reinterpret_cast<const float2*>(ptr);
@@ -37,7 +36,7 @@ namespace {
         const int t = blockIdx.z;
         const int seq_len = past_len + t + 1;          
         const int lo = c * chunk;
-        if (lo >= seq_len) return;                    
+        if (lo >= seq_len) return;                     
         const int hi = min(lo + chunk, seq_len);
 
         const int warp = threadIdx.x / WARP_SIZE;
@@ -85,12 +84,12 @@ namespace {
     #pragma unroll
                 for (int offset = WARP_SIZE / 2; offset > 0; offset >>= 1) {
     #pragma unroll
-                    for (int g = 0; g < G; ++g) s[g] += __shfl_xor_sync(0xffffffffu, s[g], offset);  
+                    for (int g = 0; g < G; ++g) s[g] += __shfl_xor_sync(0xffffffffu, s[g], offset); 
                 }
     #pragma unroll
                 for (int g = 0; g < G; ++g) {
                     const float m_new = fmaxf(m[g], s[g]);
-                    const float corr = __expf(m[g] - m_new);          
+                    const float corr = __expf(m[g] - m_new);         
                     const float p = __expf(s[g] - m_new);
                     l[g] = fmaf(l[g], corr, p);
     #pragma unroll
@@ -139,7 +138,7 @@ namespace {
         const int t = blockIdx.y;
         const int d = threadIdx.x;
         const int seq_len = past_len + t + 1;
-        const int visible_chunks = (seq_len + chunk - 1) / chunk;    
+        const int visible_chunks = (seq_len + chunk - 1) / chunk;  
         const size_t row0 = (static_cast<size_t>(t) * num_heads + h) * num_chunks;
 
         float m_max = -INFINITY;
@@ -156,19 +155,6 @@ namespace {
 
     int ceil_div(int a, int b) { return (a + b - 1) / b; }
     int round_up(int x, int multiple) { return ceil_div(x, multiple) * multiple; }
-
-    int num_sms_of_current_device() {
-        static int cached[MAX_DEVICES] = {};
-        int device = 0;
-        CODEALIGN_CHECK_CUDA(cudaGetDevice(&device));
-        if (device < 0 || device >= MAX_DEVICES) device = 0;
-        if (cached[device] == 0) {
-            int sms = 0;
-            CODEALIGN_CHECK_CUDA(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device));
-            cached[device] = sms;
-        }
-        return cached[device];
-    }
 
     [[noreturn]] void fail(const std::string& message) {
         throw std::runtime_error("run_gqa_attention: " + message);
@@ -196,7 +182,7 @@ namespace {
                 std::to_string(p.max_seq_len));
         }
         if (p.max_chunks < 1) fail("max_chunks must be >= 1");
-        const size_t vec_bytes = (p.head_dim / WARP_SIZE) * sizeof(float);   // float2 (D=64) or float4 (D=128) loads
+        const size_t vec_bytes = (p.head_dim / WARP_SIZE) * sizeof(float);   
         if (!aligned_to(p.q, vec_bytes) || !aligned_to(p.k_cache, vec_bytes) || !aligned_to(p.v_cache, vec_bytes)) {
             fail("q, k_cache and v_cache must be " + std::to_string(vec_bytes) + "-byte aligned");
         }
@@ -225,20 +211,19 @@ namespace {
             default: fail("unsupported group size");
         }
         const dim3 final_grid(p.num_heads, p.num_tokens);
-        CODEALIGN_KERNEL_LAUNCH(gqa_attention_final_kernel<D>, final_grid, dim3(D), 0, stream,
-                                p.partial_o, p.partial_lse, p.out, p.past_len, p.num_heads, chunk, num_chunks);
+        CODEALIGN_KERNEL_LAUNCH(gqa_attention_final_kernel<D>, final_grid, dim3(D), 0, stream, p.partial_o, p.partial_lse, p.out, p.past_len, p.num_heads, chunk, num_chunks);
     }
-} 
+}  
 
 static_assert(GQA_MAX_GROUP == 8, "launch_kernels dispatches group sizes 1..8");
 
 int gqa_attention_chunk_size(int num_tokens, int past_len, int num_kv_heads, int max_chunks) {
     const int seq_max = past_len + num_tokens;
-    const int target_blocks = BLOCKS_PER_SM * num_sms_of_current_device();
+    const int target_blocks = BLOCKS_PER_SM * codealign::current_device_sm_count();
     const int chunks_wanted = std::max(1, ceil_div(target_blocks, num_kv_heads * num_tokens));
     int chunk = std::max(GQA_MIN_CHUNK, round_up(ceil_div(seq_max, chunks_wanted), 32));
     if (ceil_div(seq_max, chunk) > max_chunks) {
-        chunk = round_up(ceil_div(seq_max, max_chunks), 32);  
+        chunk = round_up(ceil_div(seq_max, max_chunks), 32);   // only ever grows the chunk
     }
     return chunk;
 }

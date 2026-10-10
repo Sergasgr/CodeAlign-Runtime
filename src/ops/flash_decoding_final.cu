@@ -1,3 +1,4 @@
+// LEGACY (v1.0) final kernel: kept as the Level 4 baseline, not used by the engine. See flash_decoding.h.
 #include "../include/codealign_cuda.h"
 #include "flash_decoding.h"
 #include <limits>

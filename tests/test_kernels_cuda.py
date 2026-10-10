@@ -16,15 +16,38 @@ def _int4_case(rows, cols, device, seed=0):
     q, s = quantize_to_int4(w)
     return q, s, dequantize_int4(q, s)
 
-@pytest.mark.parametrize("rows,cols", [(4864, 896), (896, 4864), (896, 896), (128, 896)])
-def test_gemv_int4_matches_dequantized_reference(rows, cols, device):
+GEMV_SHAPES = [(4864, 896), (896, 4864), (896, 896), (128, 896),   
+               (151936, 896),                                        
+               (1, 128), (37, 128), (130, 896), (1001, 4864)]     
+
+@pytest.mark.parametrize("rows,cols", GEMV_SHAPES)
+@pytest.mark.parametrize("kernel", ["gemv_int4_forward", "gemv_int4_v1_forward"])   
+def test_gemv_int4_matches_dequantized_reference(kernel, rows, cols, device):
     import codealign_runtime_kernels as kernels
 
     q, s, w = _int4_case(rows, cols, device)
     x = torch.randn(cols, device=device)
-    out = kernels.gemv_int4_forward(q, s, x)
+    out = getattr(kernels, kernel)(q, s, x)
     ref = (w.double() @ x.double()).float()
     torch.testing.assert_close(out, ref, rtol=1e-4, atol=1e-3)
+
+@pytest.mark.parametrize("rows,cols", [(128, 896), (1001, 4864)])
+def test_gemv_int4_v2_bias_epilogue(rows, cols, device):
+    import codealign_runtime_kernels as kernels
+
+    q, s, w = _int4_case(rows, cols, device, seed=2)
+    x = torch.randn(cols, device=device)
+    bias = torch.randn(rows, device=device)
+    ref = (w.double() @ x.double() + bias.double()).float()
+    torch.testing.assert_close(kernels.gemv_int4_forward(q, s, x, bias), ref, rtol=1e-4, atol=1e-3)
+    assert torch.equal(kernels.gemv_int4_forward(q, s, x, bias), kernels.gemv_int4_forward(q, s, x, bias))
+
+def test_gemv_int4_v2_rejects_unsupported_shapes(device):
+    import codealign_runtime_kernels as kernels
+
+    q, s, _ = _int4_case(4, 12416, device)   
+    with pytest.raises(RuntimeError):
+        kernels.gemv_int4_forward(q, s, torch.randn(12416, device=device))
 
 @pytest.mark.parametrize("m", [2, 11, 37])
 def test_gemm_int4_matches_dequantized_reference(m, device):
@@ -62,6 +85,18 @@ def test_flash_decoding_matches_softmax_attention(head_dim, seq_len, device):
     K[0, -1] = Q[0, 0] * 4.0
     torch.testing.assert_close(kernels.flash_decoding_forward(Q, K, V), _attention(Q, K, V), rtol=1e-4, atol=1e-4)
 
+@pytest.mark.parametrize("head_dim", [64, 128])
+@pytest.mark.parametrize("seq_len", [1, 255, 257, 3000])
+def test_legacy_flash_decoding_v10_matches_softmax_attention(head_dim, seq_len, device):
+    import codealign_runtime_kernels as kernels
+
+    torch.manual_seed(seq_len)
+    Q = torch.randn(1, 1, head_dim, device=device)
+    K = torch.randn(1, seq_len, head_dim, device=device)
+    V = torch.randn(1, seq_len, head_dim, device=device)
+    K[0, -1] = Q[0, 0] * 4.0
+    torch.testing.assert_close(kernels.flash_decoding_v10_forward(Q, K, V), _attention(Q, K, V), rtol=1e-4, atol=1e-4)
+
 GQA_MAX_SEQ = 2048
 GQA_PAST_LENS = [0, 1, 31, 32, 33, 255, 256, 257, 1000, 2037]
 
@@ -84,9 +119,9 @@ def _gqa_case(num_heads, num_kv_heads, head_dim, num_tokens, past_len, device):
     v_cache = torch.randn(num_kv_heads, GQA_MAX_SEQ, head_dim, generator=g)
     seq_max = past_len + num_tokens
     group = num_heads // num_kv_heads
-    k_cache[:, 0] += 4.0 * q[0, ::group]           
+    k_cache[:, 0] += 4.0 * q[0, ::group]             
     k_cache[:, seq_max - 1] = 4.0 * q[-1, ::group]   
-    k_cache[:, seq_max:] = float("nan")              
+    k_cache[:, seq_max:] = float("nan")             
     v_cache[:, seq_max:] = float("nan")
     return q.to(device), k_cache.to(device), v_cache.to(device)
 
@@ -118,8 +153,8 @@ def test_gqa_attention_respects_max_chunks(max_chunks, device):
 @pytest.mark.parametrize("num_heads,num_kv_heads,head_dim,past_len,num_tokens", [
     (9, 1, 64, 0, 1),     
     (14, 3, 64, 0, 1),     
-    (14, 2, 96, 0, 1),     
-    (14, 2, 64, 2040, 9),  
+    (14, 2, 96, 0, 1),    
+    (14, 2, 64, 2040, 9), 
 ])
 def test_gqa_attention_rejects_unsupported_shapes(num_heads, num_kv_heads, head_dim, past_len, num_tokens, device):
     import codealign_runtime_kernels as kernels

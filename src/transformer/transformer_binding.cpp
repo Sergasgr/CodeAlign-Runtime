@@ -65,6 +65,8 @@ namespace {
 QwenBlock::QwenBlock(int hidden, int intermediate, int num_heads, int num_kv_heads, int head_dim, int max_seq_len) {
     TORCH_CHECK(hidden > 0 && hidden <= 1024, "hidden must be in (0, 1024]: RMSNorm runs as a single 1024-thread block");
     TORCH_CHECK(hidden % 128 == 0 && intermediate % 128 == 0, "hidden and intermediate must be multiples of the INT4 group size (128)");
+    TORCH_CHECK(intermediate <= 12288, "intermediate must be <= 12288: the INT4 GEMV v2 stages its input (down_proj: ",
+                "intermediate floats) in 48 KB of shared memory");
     TORCH_CHECK(num_heads > 0 && num_kv_heads > 0 && num_heads % num_kv_heads == 0, "num_heads must be a multiple of num_kv_heads");
     TORCH_CHECK(num_heads / num_kv_heads <= GQA_MAX_GROUP, "num_heads / num_kv_heads must be <= ", GQA_MAX_GROUP,
                 " (query heads per KV head held in registers by the GQA attention)");
@@ -90,7 +92,7 @@ QuantizedLinear QwenBlock::make_linear(const char* name, const torch::Tensor& q_
     TORCH_CHECK(q_weight.dim() == 2, name, ": packed weight must be 2D [out, in/8]");
 
     const int out_features = q_weight.size(0);
-    const int in_features = q_weight.size(1) * 8;  // 8 INT4 values per int32 word
+    const int in_features = q_weight.size(1) * 8;  
     TORCH_CHECK(in_features == expected_in && out_features == expected_out, name, ": expected [", expected_out, ", ",
                 expected_in, "] but packed weight implies [", out_features, ", ", in_features, "]");
     TORCH_CHECK(scales.numel() == static_cast<int64_t>(out_features) * (in_features / 128), name,
@@ -157,7 +159,7 @@ torch::Tensor QwenBlock::forward(torch::Tensor hidden_states) {
                 "num_tokens must be in [1, ", MAX_TOKENS_PER_FORWARD, "], got ", num_tokens, " (chunk longer inputs)");
     TORCH_CHECK(kv_cache.current_seq_len + num_tokens <= kv_cache.max_seq_len,
                 "KV-cache overflow: ", kv_cache.current_seq_len, " + ", num_tokens, " > max_seq_len ", kv_cache.max_seq_len);
-   
+
     forward_transformer_block(hidden_states.data_ptr<float>(), weights, kv_cache, buffers, dims, num_tokens, current_stream());
     check_last_cuda_error("QwenBlock.forward");
     return hidden_states;
@@ -222,7 +224,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def("max_seq_len", &QwenBlock::max_seq_len);
 
     m.attr("MAX_TOKENS_PER_FORWARD") = MAX_TOKENS_PER_FORWARD;
-    m.attr("MAX_ATTN_CHUNKS") = MAX_ATTN_CHUNKS;   // read by engine.py::cuda_buffer_bytes
+    m.attr("MAX_ATTN_CHUNKS") = MAX_ATTN_CHUNKS;  
     m.attr("NUM_SPLITS") = NUM_SPLITS;
     m.def("find_candidate_draft", &find_candidate_draft_checked, "Oracle for speculative decoding",
           pybind11::arg("tokens"), pybind11::arg("n"), pybind11::arg("k"));

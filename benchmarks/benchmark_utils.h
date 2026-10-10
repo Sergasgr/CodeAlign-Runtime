@@ -9,37 +9,35 @@
 #include <algorithm>
 #include <cuda_runtime.h>
 
-#define CUDA_CHECK(call)                                                                      \
-    do {                                                                                      \
-        cudaError_t err_ = (call);                                                            \
-        if (err_ != cudaSuccess) {                                                            \
-            std::fprintf(stderr, "CUDA error '%s' at %s:%d: %s\n", #call, __FILE__, __LINE__, \
-                         cudaGetErrorString(err_));                                           \
-            std::exit(EXIT_FAILURE);                                                          \
-        }                                                                                     \
-    } while (0)
+inline void cuda_check_or_exit(cudaError_t err, const char* call, const char* file, int line) {
+    if (err != cudaSuccess) {
+        std::fprintf(stderr, "CUDA error '%s' at %s:%d: %s\n", call, file, line, cudaGetErrorString(err));
+        std::exit(EXIT_FAILURE);
+    }
+}
 
+#define CUDA_CHECK(call) cuda_check_or_exit((call), #call, __FILE__, __LINE__)
 #define CUDA_CHECK_LAST() CUDA_CHECK(cudaGetLastError())
 
 constexpr int NUM_ITERATIONS = 100;
 constexpr int WARMUP_ITERATIONS = 10;
-constexpr int GROUP_SIZE = 128;           // INT4 per-group quantization
-constexpr double SPEC_BANDWIDTH_GBPS = 896.0;  // RTX 5070 Ti GDDR7 spec sheet (override: env GPU_BW_GBPS)
+constexpr int GROUP_SIZE = 128;           
+constexpr double SPEC_BANDWIDTH_GBPS = 896.0;  
 
 double spec_bandwidth_gbps();
 
 class L2Flusher {
-    public:
-        L2Flusher();
-        ~L2Flusher();
-        L2Flusher(const L2Flusher&) = delete;
-        L2Flusher& operator=(const L2Flusher&) = delete;
-        void flush();
-        int l2_bytes() const { return l2_bytes_; }
-    private:
-        void* buffer_ = nullptr;
-        size_t bytes_ = 0;
-        int l2_bytes_ = 0;
+public:
+    L2Flusher();
+    ~L2Flusher();
+    L2Flusher(const L2Flusher&) = delete;
+    L2Flusher& operator=(const L2Flusher&) = delete;
+    void flush();
+    int l2_bytes() const { return l2_bytes_; }
+private:
+    void* buffer_ = nullptr;
+    size_t bytes_ = 0;
+    int l2_bytes_ = 0;
 };
 
 struct BenchStats {
@@ -118,4 +116,7 @@ void print_check(const CheckResult& c);
 void fill_nan(float* d_ptr, size_t count);
 
 std::string device_json();
-void write_results_json(const std::string& path, const std::string& benchmark, const std::string& shape_json, const std::vector<CheckResult>& checks, const std::vector<BenchStats>& stats);
+std::string timings_json(const std::vector<BenchStats>& stats, const std::string& indent = "");
+void write_results_json(const std::string& path, const std::string& benchmark, const std::string& shape_json,
+                        const std::vector<CheckResult>& checks, const std::vector<BenchStats>& stats,
+                        const std::string& extra_fields_json = "");

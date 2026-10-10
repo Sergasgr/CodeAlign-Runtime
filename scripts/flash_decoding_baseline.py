@@ -1,12 +1,3 @@
-"""Level 4 — decode attention: numerical validation + benchmark against PyTorch (fp32, batch=1).
-
-1. Single head (kept from v1.0 so the table stays comparable): one query against a KV-cache of S tokens.
-2. Qwen2.5-0.5B attention layer (v1.1): 14 query heads over 2 KV heads, T new tokens (1 = decode step,
-   6 ~ a PLD verify pass) after S - T cached positions, causal. This is what the engine runs per layer.
-
-Both run the GQA attention kernels (src/ops/gqa_attention.cu). Validation uses standard-normal inputs and
-checks that its own data would catch a kernel returning mean(V) (`discriminative`).
-"""
 from __future__ import annotations
 
 import argparse
@@ -47,6 +38,9 @@ class HeadAttention:
     def attention_custom(self):
         return codealign_runtime_kernels.flash_decoding_forward(self.Q, self.K, self.V)
 
+    def attention_v10(self):
+        return codealign_runtime_kernels.flash_decoding_v10_forward(self.Q, self.K, self.V)
+
 class GqaLayer:
     def __init__(self, D, S, T, heads=NUM_HEADS, kv_heads=NUM_KV_HEADS, max_seq=MAX_SEQ_LEN):
         self.D, self.S, self.T, self.heads, self.kv_heads = D, S, T, heads, kv_heads
@@ -82,12 +76,12 @@ class GqaLayer:
         return out
 
     def kv_bytes(self):
-        return 2 * self.kv_heads * self.S * self.D * 4     
+        return 2 * self.kv_heads * self.S * self.D * 4      
 
 def validate_correctness(D: int) -> tuple[bool, list[dict]]:
     print(f"--- NUMERICAL VALIDATION, single head (D={D}, randn inputs, tolerance {TOLERANCE:g}) ---")
-    print(f"  {'case':<14} | {'S':>6} | {'max_err':>10} | {'err if kernel returned mean(V)':>30} | status")
-    print("  " + "-" * 82)
+    print(f"  {'case':<14} | {'S':>6} | {'max_err':>10} | {'v1.0 max_err':>12} | {'err if kernel returned mean(V)':>30} | status")
+    print("  " + "-" * 97)
     rows, all_passed = [], True
 
     cases = [(f"seed={seed}", seed, S, None) for seed in SEEDS for S in VALIDATION_SEQS]
@@ -99,13 +93,14 @@ def validate_correctness(D: int) -> tuple[bool, list[dict]]:
         O_pt = head.attention_pytorch()
         O_custom = head.attention_custom()
         max_err = torch.max(torch.abs(O_pt - O_custom)).item()
+        v10_err = torch.max(torch.abs(O_pt - head.attention_v10())).item()
         mean_v_err = torch.max(torch.abs(O_pt - head.V.mean(dim=1, keepdim=True))).item()
         discriminative = S == 1 or mean_v_err > 10 * TOLERANCE
-        passed = max_err < TOLERANCE and discriminative
+        passed = max_err < TOLERANCE and v10_err < TOLERANCE and discriminative
         all_passed &= passed
-        rows.append({"case": label, "S": S, "max_abs_err": max_err, "mean_v_err": mean_v_err,
+        rows.append({"case": label, "S": S, "max_abs_err": max_err, "v10_max_abs_err": v10_err, "mean_v_err": mean_v_err,
                      "discriminative": discriminative, "pass": passed})
-        print(f"  {label:<14} | {S:>6} | {max_err:>10.2e} | {mean_v_err:>30.2e} | {'PASS' if passed else 'FAIL'}")
+        print(f"  {label:<14} | {S:>6} | {max_err:>10.2e} | {v10_err:>12.2e} | {mean_v_err:>30.2e} | {'PASS' if passed else 'FAIL'}")
     return all_passed, rows
 
 def validate_gqa(D: int) -> tuple[bool, list[dict]]:
@@ -149,19 +144,23 @@ def make_timer(iterations: int, warmup: int):
 
 def benchmark(D: int, iterations: int, warmup: int) -> list[dict]:
     print(f"\n--- BENCHMARK, single head (D={D}, batch=1, KV-cache growth, {iterations} iterations) ---")
-    print(f"  {'Seq Length':<12} | {'PyTorch p50 (ms)':<17} | {'Custom p50 (ms)':<16} | {'PyTorch/Custom':<10}")
-    print("  " + "-" * 66)
+    print(f"  {'Seq Length':<12} | {'PyTorch p50 (ms)':<17} | {'v1.0 p50 (ms)':<14} | {'v1.1 p50 (ms)':<14} | "
+          f"{'PyTorch/v1.1':<12} | {'v1.0/v1.1':<9}")
+    print("  " + "-" * 92)
     timed = make_timer(iterations, warmup)
     rows = []
     for S in BENCH_SEQS:
         head = HeadAttention(D, S)
         pt = timed(head.attention_pytorch)
+        v10 = timed(head.attention_v10)
         custom = timed(head.attention_custom)
         ratio = pt["p50_ms"] / custom["p50_ms"] if custom["p50_ms"] > 0 else 0.0
+        ratio_v10 = v10["p50_ms"] / custom["p50_ms"] if custom["p50_ms"] > 0 else 0.0
         kv_bytes = 2 * S * D * 4
-        rows.append({"S": S, "pytorch": pt, "custom": custom, "ratio_pytorch_over_custom": ratio,
-                     "kv_bytes": kv_bytes, "ceiling_ms": kv_bytes / BANDWIDTH * 1e3})
-        print(f"  {S:<12} | {pt['p50_ms']:<17.4f} | {custom['p50_ms']:<16.4f} | {ratio:<10.2f}x")
+        rows.append({"S": S, "pytorch": pt, "custom_v10": v10, "custom": custom, "ratio_pytorch_over_custom": ratio,
+                     "ratio_v10_over_custom": ratio_v10, "kv_bytes": kv_bytes, "ceiling_ms": kv_bytes / BANDWIDTH * 1e3})
+        print(f"  {S:<12} | {pt['p50_ms']:<17.4f} | {v10['p50_ms']:<14.4f} | {custom['p50_ms']:<14.4f} | "
+              f"{ratio:<11.2f}x | {ratio_v10:<8.2f}x")
     return rows
 
 def benchmark_gqa(D: int, iterations: int, warmup: int) -> list[dict]:
@@ -199,13 +198,11 @@ def main():
     print(f"\nResult: {'ALL PASSED' if all_passed else 'SOME FAILED'}")
     if not all_passed:
         print("Benchmark skipped — fix validation errors first.")
-        save_results("level4_flash_decoding", {"head_dim": args.head_dim, "validation": validation,
-                                               "gqa_validation": gqa_validation, "benchmark": None, "gqa_layer": None})
+        save_results("level4_flash_decoding", {"head_dim": args.head_dim, "validation": validation, "gqa_validation": gqa_validation, "benchmark": None, "gqa_layer": None})
         raise SystemExit(1)
     rows = benchmark(args.head_dim, args.iterations, args.warmup)
     gqa_rows = benchmark_gqa(args.head_dim, args.iterations, args.warmup)
-    save_results("level4_flash_decoding", {"head_dim": args.head_dim, "tolerance": TOLERANCE, "validation": validation,
-                                           "gqa_validation": gqa_validation, "benchmark": rows, "gqa_layer": gqa_rows})
+    save_results("level4_flash_decoding", {"head_dim": args.head_dim, "tolerance": TOLERANCE, "validation": validation, "gqa_validation": gqa_validation, "benchmark": rows, "gqa_layer": gqa_rows})
 
 if __name__ == "__main__":
     main()

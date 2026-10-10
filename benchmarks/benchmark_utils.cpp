@@ -63,7 +63,7 @@ void symmetric_quantization(const std::vector<float>& h_mat, std::vector<uint32_
         for(size_t j = i; j < i + GROUP_SIZE; j++) {
             if (std::abs(h_mat[j]) > max_abs) max_abs = std::abs(h_mat[j]);
         }
-        float scale = std::max(max_abs, 1e-9f) / 7.0f; // symmetric: values land in [-7, 7] 
+        float scale = std::max(max_abs, 1e-9f) / 7.0f; 
         h_scales.push_back(scale);
         for(size_t j = i; j < i + GROUP_SIZE; j += 8) {
             uint32_t packed = 0;
@@ -135,7 +135,7 @@ void print_check(const CheckResult& c) {
 }
 
 void fill_nan(float* d_ptr, size_t count) {
-    CUDA_CHECK(cudaMemset(d_ptr, 0xFF, count * sizeof(float)));  
+    CUDA_CHECK(cudaMemset(d_ptr, 0xFF, count * sizeof(float)));
 }
 
 std::string device_json() {
@@ -160,10 +160,25 @@ namespace {
         os << std::setprecision(8) << v;
         return os.str();
     }
+} 
+
+std::string timings_json(const std::vector<BenchStats>& stats, const std::string& indent) {
+    std::ostringstream f;
+    f << "[\n";
+    for (size_t i = 0; i < stats.size(); i++) {
+        const auto& s = stats[i];
+        f << indent << "  {\"kernel\": \"" << s.kernel << "\", \"cache\": \"" << s.cache << "\", \"p50_ms\": " << num(s.p50_ms)
+          << ", \"p90_ms\": " << num(s.p90_ms) << ", \"p99_ms\": " << num(s.p99_ms) << ", \"mean_ms\": " << num(s.mean_ms)
+          << ", \"bytes\": " << num(s.bytes) << ", \"gbps_p50\": " << num(s.gbps_p50) << ", \"pct_of_spec_bw\": " << num(s.pct_of_spec_bw)
+          << "}" << (i + 1 < stats.size() ? "," : "") << "\n";
+    }
+    f << indent << "]";
+    return f.str();
 }
 
 void write_results_json(const std::string& path, const std::string& benchmark, const std::string& shape_json,
-                        const std::vector<CheckResult>& checks, const std::vector<BenchStats>& stats) {
+                        const std::vector<CheckResult>& checks, const std::vector<BenchStats>& stats,
+                        const std::string& extra_fields_json) {
     std::filesystem::path p(path);
     if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path());
     std::ofstream f(path);
@@ -176,14 +191,8 @@ void write_results_json(const std::string& path, const std::string& benchmark, c
           << (c.pass ? "true" : "false") << ", \"max_abs_err\": " << num(c.max_abs_err) << ", \"max_abs_ref\": " << num(c.max_abs_ref)
           << ", \"atol\": " << num(c.atol) << ", \"rtol\": " << num(c.rtol) << "}" << (i + 1 < checks.size() ? "," : "") << "\n";
     }
-    f << "  ],\n  \"timings\": [\n";
-    for (size_t i = 0; i < stats.size(); i++) {
-        const auto& s = stats[i];
-        f << "    {\"kernel\": \"" << s.kernel << "\", \"cache\": \"" << s.cache << "\", \"p50_ms\": " << num(s.p50_ms)
-          << ", \"p90_ms\": " << num(s.p90_ms) << ", \"p99_ms\": " << num(s.p99_ms) << ", \"mean_ms\": " << num(s.mean_ms)
-          << ", \"bytes\": " << num(s.bytes) << ", \"gbps_p50\": " << num(s.gbps_p50) << ", \"pct_of_spec_bw\": " << num(s.pct_of_spec_bw)
-          << "}" << (i + 1 < stats.size() ? "," : "") << "\n";
-    }
-    f << "  ]\n}\n";
+    f << "  ],\n  \"timings\": " << timings_json(stats, "  ");
+    if (!extra_fields_json.empty()) f << ",\n  " << extra_fields_json;
+    f << "\n}\n";
     std::cout << "\nResults written to " << path << "\n";
 }

@@ -38,40 +38,50 @@ def level0() -> str | None:
         f"TPOT p50 reaches **{r['pct_of_ceiling_p50']:.1f}%** of it. Peak VRAM: {r['peak_vram_mb']:.0f} MB.",
         env_line(r)])
 
-def kernel_table(name: str, title_shape: str) -> str | None:
-    r = load(name)
-    if not r:
-        return None
-    by = {(t["kernel"], t["cache"]): t for t in r["timings"]}
-    kernels = list(dict.fromkeys(t["kernel"] for t in r["timings"]))
+def _timings_table(timings: list[dict]) -> str:
+    by = {(t["kernel"], t["cache"]): t for t in timings}
+    kernels = list(dict.fromkeys(t["kernel"] for t in timings))
     rows = []
     for k in kernels:
         hot, cold = by.get((k, "hot")), by.get((k, "cold"))
         rows.append([k, fmt(hot and hot["p50_ms"], 4), fmt(hot and hot["gbps_p50"], 1),
                      fmt(cold and cold["p50_ms"], 4), fmt(cold and cold["gbps_p50"], 1),
                      fmt(cold and cold["pct_of_spec_bw"], 1)])
+    return table(["Kernel", "L2-hot p50 (ms)", "L2-hot GB/s", "L2-cold p50 (ms)", "L2-cold GB/s", "% of 896 GB/s (cold)"], rows)
+
+def kernel_table(name: str, title_shape: str) -> str | None:
+    r = load(name)
+    if not r:
+        return None
     passed = sum(c["pass"] for c in r["validation"])
-    return "\n".join([
-        f"{title_shape}: {r['shape']}",
-        "",
-        table(["Kernel", "L2-hot p50 (ms)", "L2-hot GB/s", "L2-cold p50 (ms)", "L2-cold GB/s", "% of 896 GB/s (cold)"], rows),
-        "",
-        f"Validation: {passed}/{len(r['validation'])} kernel x shape checks passed (random data, CPU reference).",
-        f"_{r['device'].get('name', '?')}_"])
+    out = [f"{title_shape}: {r['shape']}", "", _timings_table(r["timings"]), ""]
+    if r.get("lm_head"):   # gemv_benchmark since v1.1: the lm_head shape (larger than L2)
+        out += [f"{title_shape}: {r['lm_head']['shape']}", "", _timings_table(r["lm_head"]["timings"]), ""]
+    out += [f"Validation: {passed}/{len(r['validation'])} kernel x shape checks passed (random data, CPU reference).",
+            f"_{r['device'].get('name', '?')}_"]
+    return "\n".join(out)
 
 def level4() -> str | None:
     r = load("level4_flash_decoding")
     if not r or not r.get("benchmark"):
         return None
     worst = max(v["max_abs_err"] for v in r["validation"])
-    rows = [[f"{b['S']:,}", fmt(b["pytorch"]["p50_ms"], 4), fmt(b["custom"]["p50_ms"], 4),
-             f"{b['ratio_pytorch_over_custom']:.2f}x", fmt(b["ceiling_ms"], 4)] for b in r["benchmark"]]
-    return "\n".join([
-        f"Validation: {sum(v['pass'] for v in r['validation'])}/{len(r['validation'])} cases, worst max|err| = {worst:.1e} "
-        f"(tolerance {r['tolerance']:g}), head_dim={r['head_dim']}.",
-        "",
-        table(["Seq length", "PyTorch p50 (ms)", "Custom p50 (ms)", "PyTorch / Custom", "KV-read ceiling (ms)"], rows),
-        env_line(r)])
+    has_v10 = "custom_v10" in r["benchmark"][0]          # since v1.1: the legacy v1.0 kernel in the same run
+    headers = ["Seq length", "PyTorch p50 (ms)"] + (["v1.0 kernel p50 (ms)"] if has_v10 else []) + \
+              ["Custom p50 (ms)", "PyTorch / Custom"] + (["v1.0 / Custom"] if has_v10 else []) + ["KV-read ceiling (ms)"]
+    rows = [[f"{b['S']:,}", fmt(b["pytorch"]["p50_ms"], 4)] + ([fmt(b["custom_v10"]["p50_ms"], 4)] if has_v10 else []) +
+            [fmt(b["custom"]["p50_ms"], 4), f"{b['ratio_pytorch_over_custom']:.2f}x"] +
+            ([f"{b['ratio_v10_over_custom']:.2f}x"] if has_v10 else []) + [fmt(b["ceiling_ms"], 4)] for b in r["benchmark"]]
+    out = [f"Validation: {sum(v['pass'] for v in r['validation'])}/{len(r['validation'])} cases, worst max|err| = {worst:.1e} "
+           f"(tolerance {r['tolerance']:g}), head_dim={r['head_dim']}.", "", table(headers, rows)]
+    if r.get("gqa_layer"):
+        g = r["gqa_layer"]
+        out += ["", f"Qwen2.5-0.5B attention layer ({g[0]['heads']} query / {g[0]['kv_heads']} KV heads):", "",
+                table(["T", "S", "SDPA p50 (ms)", "Custom p50 (ms)", "SDPA / Custom", "KV ceiling (ms)"],
+                      [[str(x["T"]), f"{x['S']:,}", fmt(x["pytorch_sdpa"]["p50_ms"], 4), fmt(x["custom"]["p50_ms"], 4),
+                        f"{x['ratio_pytorch_over_custom']:.2f}x", fmt(x["ceiling_ms"], 5)] for x in g])]
+    out.append(env_line(r))
+    return "\n".join(out)
 
 def level5() -> str | None:
     r = load("level5_engine")
@@ -138,8 +148,7 @@ def llama_cpp() -> str | None:
     rows = []
     for variant, v in r["variants"].items():
         for d in v["decode"]:
-            rows.append([variant, f"{v['file_bytes'] / 1e6:.0f}", f"{d['n_depth']:,}", f"{d['tokens_per_s']:.1f}",
-                         fmt(d["tpot_ms"], 3)])
+            rows.append([variant, f"{v['file_bytes'] / 1e6:.0f}", f"{d['n_depth']:,}", f"{d['tokens_per_s']:.1f}", fmt(d["tpot_ms"], 3)])
     return table(["GGUF", "File (MB)", "Context depth", "tok/s", "TPOT (ms)"], rows)
 
 def summary() -> str:
@@ -147,17 +156,13 @@ def summary() -> str:
     l0, l5, l6, ll = load("level0_baseline"), load("level5_engine"), load("level6_speculative"), load("llama_cpp")
     bf16, int4 = load("humaneval_bf16"), load("humaneval_int4")
     if l0:
-        rows.append(["PyTorch eager (bf16)", fmt(l0["ttft"]["p50_ms"], 2), fmt(l0["tpot"]["p50_ms"], 3),
-                     f"{l0['pct_of_ceiling_p50']:.1f}%", f"{l0['peak_vram_mb']:.0f}", fmt(bf16 and bf16["pass@1"], 3)])
+        rows.append(["PyTorch eager (bf16)", fmt(l0["ttft"]["p50_ms"], 2), fmt(l0["tpot"]["p50_ms"], 3), f"{l0['pct_of_ceiling_p50']:.1f}%", f"{l0['peak_vram_mb']:.0f}", fmt(bf16 and bf16["pass@1"], 3)])
     if l5:
         m = min(l5["model_decode"], key=lambda x: abs(x["context"] - 512))
-        rows.append([f"C++/CUDA engine, INT4 (S={m['context']})", fmt(l5.get("e2e", {}).get("ttft_ms"), 1),
-                     fmt(m["p50_ms"], 3), f"{m['pct_of_ceiling_p50']:.1f}%", f"{_engine_vram_mb(l5):.0f}",
-                     fmt(int4 and int4["pass@1"], 3)])
+        rows.append([f"C++/CUDA engine, INT4 (S={m['context']})", fmt(l5.get("e2e", {}).get("ttft_ms"), 1), fmt(m["p50_ms"], 3), f"{m['pct_of_ceiling_p50']:.1f}%", f"{_engine_vram_mb(l5):.0f}", fmt(int4 and int4["pass@1"], 3)])
     if l6:
         lossless = all(p["identical_to_greedy"] for p in l6["prompts"])
-        rows.append(["+ Prompt Lookup Decoding", "—", "—", "—", "—",
-                     f"x{l6['overall_speedup']:.2f} tok/s" + (", identical output" if lossless else ", output differs (see Level 6)")])
+        rows.append(["+ Prompt Lookup Decoding", "—", "—", "—", "—", f"x{l6['overall_speedup']:.2f} tok/s" + (", identical output" if lossless else ", output differs (see Level 6)")])
     if ll:
         for variant in ("Q4_0", "Q4_K_M"):
             if variant in ll["variants"]:
