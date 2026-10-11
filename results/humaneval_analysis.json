@@ -1,0 +1,4149 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-10-10T21:00:52+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "git_commit": "4271460",
+    "git_dirty": false,
+    "nvidia_driver": "595.91.07",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "compute_capability": "12.0",
+    "transformers": "5.15.1"
+  },
+  "dataset": "openai/openai_humaneval",
+  "num_problems": 164,
+  "timeout_s": 3.0,
+  "whitespace_run_chars": 50,
+  "reference_tag": "bf16",
+  "summary": {
+    "bf16": {
+      "solved": 40,
+      "pass@1": 0.24390243902439024,
+      "body_only_solved": 40,
+      "whitespace_runs": 0,
+      "failures": {
+        "AssertionError": 95,
+        "SyntaxError": 12,
+        "TypeError": 5,
+        "NameError": 3,
+        "ValueError": 3,
+        "RecursionError": 2,
+        "IndentationError": 2,
+        "AttributeError": 1,
+        "IndexError": 1
+      },
+      "generations_file": "results/humaneval_generations_bf16_humaneval.json",
+      "bigcode_pass@1": 0.24390243902439024,
+      "matches_bigcode": true
+    },
+    "int4": {
+      "solved": 26,
+      "pass@1": 0.15853658536585366,
+      "body_only_solved": 27,
+      "whitespace_runs": 63,
+      "failures": {
+        "AssertionError": 75,
+        "SyntaxError": 46,
+        "NameError": 6,
+        "IndentationError": 3,
+        "TypeError": 3,
+        "timeout": 2,
+        "AttributeError": 2,
+        "ValueError": 1
+      },
+      "generations_file": "results/humaneval_generations_int4_humaneval.json",
+      "bigcode_pass@1": 0.15853658536585366,
+      "matches_bigcode": true
+    },
+    "int4_dequant": {
+      "solved": 24,
+      "pass@1": 0.14634146341463414,
+      "body_only_solved": 29,
+      "whitespace_runs": 60,
+      "failures": {
+        "AssertionError": 74,
+        "SyntaxError": 51,
+        "NameError": 5,
+        "TypeError": 4,
+        "IndexError": 2,
+        "IndentationError": 2,
+        "timeout": 1,
+        "ValueError": 1
+      },
+      "generations_file": "results/humaneval_generations_int4_dequant_humaneval.json",
+      "bigcode_pass@1": 0.14634146341463414,
+      "matches_bigcode": true
+    },
+    "int4_bf16head": {
+      "solved": 25,
+      "pass@1": 0.1524390243902439,
+      "body_only_solved": 28,
+      "whitespace_runs": 77,
+      "failures": {
+        "AssertionError": 69,
+        "SyntaxError": 47,
+        "NameError": 9,
+        "IndexError": 4,
+        "TypeError": 3,
+        "ValueError": 2,
+        "UnboundLocalError": 1,
+        "RecursionError": 1,
+        "timeout": 1,
+        "KeyError": 1,
+        "IndentationError": 1
+      },
+      "generations_file": "results/humaneval_generations_int4_bf16head_humaneval.json",
+      "bigcode_pass@1": 0.1524390243902439,
+      "matches_bigcode": true
+    }
+  },
+  "overlap": {
+    "bf16_vs_int4": {
+      "both": 22,
+      "only_reference": 18,
+      "only_other": 4,
+      "neither": 120,
+      "only_reference_tasks": [
+        "HumanEval/3",
+        "HumanEval/9",
+        "HumanEval/11",
+        "HumanEval/25",
+        "HumanEval/27",
+        "HumanEval/43",
+        "HumanEval/45",
+        "HumanEval/47",
+        "HumanEval/48",
+        "HumanEval/50",
+        "HumanEval/57",
+        "HumanEval/58",
+        "HumanEval/60",
+        "HumanEval/61",
+        "HumanEval/85",
+        "HumanEval/92",
+        "HumanEval/116",
+        "HumanEval/121"
+      ],
+      "only_other_tasks": [
+        "HumanEval/4",
+        "HumanEval/8",
+        "HumanEval/14",
+        "HumanEval/87"
+      ]
+    },
+    "bf16_vs_int4_dequant": {
+      "both": 19,
+      "only_reference": 21,
+      "only_other": 5,
+      "neither": 119,
+      "only_reference_tasks": [
+        "HumanEval/3",
+        "HumanEval/9",
+        "HumanEval/11",
+        "HumanEval/25",
+        "HumanEval/27",
+        "HumanEval/30",
+        "HumanEval/43",
+        "HumanEval/45",
+        "HumanEval/47",
+        "HumanEval/48",
+        "HumanEval/50",
+        "HumanEval/57",
+        "HumanEval/58",
+        "HumanEval/60",
+        "HumanEval/61",
+        "HumanEval/63",
+        "HumanEval/66",
+        "HumanEval/85",
+        "HumanEval/92",
+        "HumanEval/116",
+        "HumanEval/121"
+      ],
+      "only_other_tasks": [
+        "HumanEval/4",
+        "HumanEval/8",
+        "HumanEval/14",
+        "HumanEval/18",
+        "HumanEval/87"
+      ]
+    },
+    "bf16_vs_int4_bf16head": {
+      "both": 22,
+      "only_reference": 18,
+      "only_other": 3,
+      "neither": 121,
+      "only_reference_tasks": [
+        "HumanEval/2",
+        "HumanEval/9",
+        "HumanEval/11",
+        "HumanEval/27",
+        "HumanEval/30",
+        "HumanEval/42",
+        "HumanEval/43",
+        "HumanEval/46",
+        "HumanEval/47",
+        "HumanEval/50",
+        "HumanEval/55",
+        "HumanEval/57",
+        "HumanEval/58",
+        "HumanEval/60",
+        "HumanEval/63",
+        "HumanEval/85",
+        "HumanEval/92",
+        "HumanEval/121"
+      ],
+      "only_other_tasks": [
+        "HumanEval/4",
+        "HumanEval/8",
+        "HumanEval/14"
+      ]
+    }
+  },
+  "per_problem": {
+    "bf16": [
+      {
+        "task_id": "HumanEval/0",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/1",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/2",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/3",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/4",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/5",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/6",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/7",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/8",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/9",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/10",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/11",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/12",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/13",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/14",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/15",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/16",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/17",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/18",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/19",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/20",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/21",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/22",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/23",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/24",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/25",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/26",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/27",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/28",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/29",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/30",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/31",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/32",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/33",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/34",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/35",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/36",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/37",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/38",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/39",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/40",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/41",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/42",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/43",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/44",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/45",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/46",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/47",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/48",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/49",
+        "status": "failed: RecursionError",
+        "body_only_status": "failed: RecursionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/50",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/51",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/52",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/53",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/54",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/55",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/56",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/57",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/58",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/59",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/60",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/61",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/62",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/63",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/64",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/65",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/66",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/67",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/68",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/69",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/70",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/71",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/72",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/73",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/74",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/75",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/76",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/77",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/78",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/79",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/80",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/81",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/82",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/83",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/84",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/85",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/86",
+        "status": "failed: RecursionError",
+        "body_only_status": "failed: RecursionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/87",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/88",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/89",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/90",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/91",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/92",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/93",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/94",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/95",
+        "status": "failed: AttributeError",
+        "body_only_status": "failed: AttributeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/96",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/97",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/98",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/99",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/100",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/101",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/102",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/103",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/104",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/105",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/106",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/107",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/108",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/109",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/110",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/111",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/112",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/113",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/114",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/115",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/116",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/117",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/118",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/119",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/120",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/121",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/122",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/123",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/124",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/125",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/126",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/127",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/128",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/129",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/130",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/131",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/132",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/133",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/134",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/135",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/136",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/137",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/138",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/139",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/140",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/141",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/142",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/143",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/144",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/145",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/146",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/147",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/148",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/149",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/150",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/151",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/152",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/153",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/154",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/155",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/156",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/157",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/158",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/159",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/160",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/161",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/162",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/163",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      }
+    ],
+    "int4": [
+      {
+        "task_id": "HumanEval/0",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/1",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/2",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/3",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/4",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/5",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/6",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/7",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/8",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/9",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/10",
+        "status": "timeout",
+        "body_only_status": "timeout",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/11",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/12",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/13",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/14",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/15",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/16",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/17",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/18",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/19",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/20",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/21",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/22",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/23",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/24",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/25",
+        "status": "timeout",
+        "body_only_status": "timeout",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/26",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/27",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/28",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/29",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/30",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/31",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/32",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/33",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/34",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/35",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/36",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/37",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/38",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/39",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/40",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/41",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/42",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/43",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/44",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/45",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/46",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/47",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/48",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/49",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/50",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/51",
+        "status": "failed: NameError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/52",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/53",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/54",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/55",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/56",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/57",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/58",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/59",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/60",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/61",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/62",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/63",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/64",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/65",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/66",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/67",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/68",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/69",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/70",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/71",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/72",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/73",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/74",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/75",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/76",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/77",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/78",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/79",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/80",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/81",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/82",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/83",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/84",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/85",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/86",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/87",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/88",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/89",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/90",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/91",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/92",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/93",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/94",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/95",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/96",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/97",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/98",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/99",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/100",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/101",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/102",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/103",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/104",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/105",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/106",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/107",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/108",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/109",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/110",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/111",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/112",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/113",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/114",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/115",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/116",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/117",
+        "status": "failed: NameError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/118",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/119",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/120",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/121",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/122",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/123",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/124",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/125",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/126",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/127",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/128",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/129",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/130",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/131",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/132",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/133",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/134",
+        "status": "failed: AttributeError",
+        "body_only_status": "failed: AttributeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/135",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/136",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/137",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/138",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/139",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/140",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/141",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/142",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/143",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/144",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/145",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/146",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/147",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/148",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/149",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/150",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/151",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/152",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/153",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/154",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/155",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/156",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/157",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/158",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/159",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/160",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/161",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/162",
+        "status": "failed: AttributeError",
+        "body_only_status": "failed: AttributeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/163",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      }
+    ],
+    "int4_dequant": [
+      {
+        "task_id": "HumanEval/0",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/1",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/2",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/3",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/4",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/5",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/6",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/7",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/8",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/9",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/10",
+        "status": "timeout",
+        "body_only_status": "timeout",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/11",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/12",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/13",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/14",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/15",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/16",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/17",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/18",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/19",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/20",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/21",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/22",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/23",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/24",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/25",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/26",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/27",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/28",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/29",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/30",
+        "status": "failed: NameError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/31",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/32",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/33",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/34",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/35",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/36",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/37",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/38",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/39",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/40",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/41",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/42",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/43",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/44",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/45",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/46",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/47",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/48",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/49",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/50",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/51",
+        "status": "failed: NameError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/52",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/53",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/54",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/55",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/56",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/57",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/58",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/59",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/60",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/61",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/62",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/63",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/64",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/65",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/66",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/67",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/68",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/69",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/70",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/71",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/72",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/73",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/74",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/75",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/76",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/77",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/78",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/79",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/80",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/81",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/82",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/83",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/84",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/85",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/86",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/87",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/88",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/89",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/90",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/91",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/92",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/93",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/94",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/95",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/96",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/97",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/98",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/99",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/100",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/101",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/102",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/103",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/104",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/105",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/106",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/107",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/108",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/109",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/110",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/111",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/112",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/113",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/114",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/115",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/116",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/117",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/118",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/119",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/120",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/121",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/122",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/123",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/124",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/125",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/126",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/127",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/128",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/129",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/130",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/131",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/132",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/133",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/134",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/135",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/136",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/137",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/138",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/139",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/140",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/141",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/142",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/143",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/144",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/145",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/146",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/147",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/148",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/149",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/150",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/151",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/152",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/153",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/154",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/155",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/156",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/157",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/158",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/159",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/160",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/161",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/162",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/163",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      }
+    ],
+    "int4_bf16head": [
+      {
+        "task_id": "HumanEval/0",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/1",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/2",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/3",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/4",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/5",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/6",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/7",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/8",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/9",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/10",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/11",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/12",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/13",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/14",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/15",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/16",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/17",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/18",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/19",
+        "status": "failed: ValueError",
+        "body_only_status": "failed: ValueError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/20",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/21",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/22",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/23",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/24",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/25",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/26",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/27",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/28",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/29",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/30",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/31",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/32",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/33",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/34",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/35",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/36",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/37",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/38",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/39",
+        "status": "failed: UnboundLocalError",
+        "body_only_status": "failed: UnboundLocalError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/40",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/41",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/42",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/43",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/44",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/45",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/46",
+        "status": "failed: RecursionError",
+        "body_only_status": "failed: RecursionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/47",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/48",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/49",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/50",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/51",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/52",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/53",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/54",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/55",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/56",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/57",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/58",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/59",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/60",
+        "status": "failed: SyntaxError",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/61",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/62",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/63",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/64",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/65",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/66",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/67",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/68",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/69",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/70",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/71",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/72",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/73",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/74",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/75",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/76",
+        "status": "failed: NameError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/77",
+        "status": "timeout",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/78",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/79",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/80",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/81",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/82",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/83",
+        "status": "failed: NameError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/84",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/85",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/86",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/87",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/88",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/89",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/90",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/91",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/92",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/93",
+        "status": "failed: NameError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/94",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/95",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/96",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/97",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/98",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/99",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/100",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/101",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/102",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/103",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/104",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/105",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/106",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/107",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/108",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/109",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/110",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/111",
+        "status": "failed: KeyError",
+        "body_only_status": "failed: KeyError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/112",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/113",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/114",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/115",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/116",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/117",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/118",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/119",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/120",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/121",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/122",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/123",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/124",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/125",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/126",
+        "status": "failed: IndexError",
+        "body_only_status": "failed: IndexError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/127",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/128",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/129",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/130",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/131",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/132",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/133",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/134",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/135",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/136",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/137",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/138",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/139",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/140",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: SyntaxError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/141",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/142",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/143",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/144",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/145",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/146",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/147",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/148",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/149",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/150",
+        "status": "failed: IndentationError",
+        "body_only_status": "failed: IndentationError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/151",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/152",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/153",
+        "status": "failed: TypeError",
+        "body_only_status": "failed: TypeError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/154",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/155",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/156",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/157",
+        "status": "passed",
+        "body_only_status": "passed",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/158",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/159",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/160",
+        "status": "failed: SyntaxError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      },
+      {
+        "task_id": "HumanEval/161",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/162",
+        "status": "failed: NameError",
+        "body_only_status": "failed: NameError",
+        "whitespace_run": false
+      },
+      {
+        "task_id": "HumanEval/163",
+        "status": "failed: AssertionError",
+        "body_only_status": "failed: AssertionError",
+        "whitespace_run": true
+      }
+    ]
+  }
+}
